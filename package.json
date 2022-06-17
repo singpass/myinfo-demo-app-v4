@@ -1,0 +1,26 @@
+{
+  "name": "myinfo-demo-app",
+  "version": "3.0.0",
+  "description": "This is MyInfo Demo App",
+  "main": "app.js",
+  "scripts": {
+    "start": "npm run test",
+    "test": "node app.js test",
+    "sandbox": "node app.js sandbox"
+  },
+  "author": "MyInfo Team",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "colors": "^1.4.0",
+    "cookie-parser": "^1.4.5",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "lodash": "^4.17.21",
+    "log4js": "^6.3.0",
+    "node-jose": "^2.0.0",
+    "path": "^0.12.7",
+    "pug": "^3.0.2",
+    "secure-random-string": "^1.1.3"
+  }
+}
