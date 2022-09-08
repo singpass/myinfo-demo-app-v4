@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const constant = require('../common/constant');
 const jose = require('node-jose');
 const srs = require('secure-random-string');
+const fs = require('fs');
 
 /**
  * Verify JWS
@@ -49,7 +50,7 @@ module.exports.verifyJWS = async (compactJWS, jwksUrl) => {
  * @returns {Promise} - Promise that resolve decrypted data
  */
 
-module.exports.decryptJWEWithKey = async (compactJWE, sessionEncKeyPair) => {
+module.exports.decryptJWEWithKey = async (compactJWE, encryptionPrivateKey) => {
   try {
     let keystore = jose.JWK.createKeyStore();
     let jweParts = compactJWE.split("."); // header.encryptedKey.iv.ciphertext.tag
@@ -58,7 +59,7 @@ module.exports.decryptJWEWithKey = async (compactJWE, sessionEncKeyPair) => {
     }
 
     //Session encryption private key should correspond to the session encryption public key passed in to client assertion
-    let key = await keystore.add(sessionEncKeyPair.privateKey, "pem");
+    let key = await keystore.add(encryptionPrivateKey, "pem");
 
     let data = {
       "type": "compact",
@@ -111,13 +112,12 @@ module.exports.generateSessionKeyPair = async () => {
  * 
  * @param {string} url - The URL of the Token API
  * @param {string} clientId - Client id provided during onboarding
- * @param {string} privateKey - Your application private key
- * @param {Object} sessionEncKeyPair - A key pair used for encryption which is generated if ENABLE_JWE flag is 'Y'
- * @param {Object} sessionPopKeyPair - A key pair used for signing which is generated if ENABLE_JWS is 'Y'
+ * @param {string} privateSigningKey - Your application private signing key in pem format
+ * @param {string} jktThumbprint - The base64url encode of SHA-256 of the DPoP jwk
  * @returns {string} - Returns the client assertion
  */
 
-module.exports.generateClientAssertion = async (url, clientId, privateKey, sessionEncKeyPair, sessionPopKeyPair) => {
+module.exports.generateClientAssertion = async (url, clientId, privateSigningKey, jktThumbprint) => {
   try {
     let now = Math.floor((Date.now() / 1000));
 
@@ -127,26 +127,13 @@ module.exports.generateClientAssertion = async (url, clientId, privateKey, sessi
       "aud": url,
       "iss": clientId,
       "iat": now,
-      "exp": now + 300
+      "exp": now + 300,
+      "cnf" : {
+        "jkt": jktThumbprint
+      }
     };
 
-    //If ENABLE_JWS is TRUE, add sessionPopKey public key to payload
-    if (sessionPopKeyPair) {
-      let session_pop_key = (await jose.JWK.asKey(sessionPopKeyPair.publicKey, "pem")).toJSON(true);
-      session_pop_key.use = "sig";
-      session_pop_key.alg = "ES256";
-      payload.session_pop_key = session_pop_key;
-    }
-
-    //If ENABLE_JWE is TRUE, add sessionEncKey public key to payload
-    if (sessionEncKeyPair) {
-      let session_enc_key = (await jose.JWK.asKey(sessionEncKeyPair.publicKey, "pem")).toJSON(true);
-      session_enc_key.use = "enc";
-      session_enc_key.alg = "ECDH-ES";
-      payload.session_enc_key = session_enc_key;
-    }
-
-    let jwsKey = await jose.JWK.asKey(privateKey, "pem");
+    let jwsKey = await jose.JWK.asKey(privateSigningKey, "pem");
     let jwtToken = await jose.JWS.createSign({ "format": 'compact', "fields": { "typ": 'JWT' } }, jwsKey).update(JSON.stringify(payload)).final();
     logger.info("jwtToken", jwtToken);
     return jwtToken;
@@ -159,30 +146,32 @@ module.exports.generateClientAssertion = async (url, clientId, privateKey, sessi
 /**
  * Generate Dpop Token
  * 
- * This method generates the Dpop Token which will be used when calling Person API.
+ * This method generates the Dpop Token which will be used when calling Token and Person API.
  * Note: Dpop Token is not generated in SANDBOX environment.
  * 
  * @param {string} url - The URL of the Person API
- * @param {string} accessToken - The Access Token returned from Token API
  * @param {string} method - The HTTP method used when calling Person API
- * @param {Object} sessionPopKeyPair - A key pair used for signing which is generated if ENABLE_JWS is 'Y'
+ * @param {Object} sessionPopKeyPair - A key pair used for signing the DPoP which is generated if ENABLE_JWS is 'Y'
+ * @param {string} ath - The base64url encode of SHA-256 of the access token, Mandatory for /Person call
  * @returns {string} - Returns the Dpop Token
  */
 
-module.exports.generateDpop = async (url, accessToken, method, sessionPopKeyPair) => {
+module.exports.generateDpopProof = async (url, method, sessionPopKeyPair, ath) => {
   try {
     let now = Math.floor((Date.now() / 1000));
     let payload = {
       "htu": url,
       "htm": method,
       "jti": generateRandomString(40),
-      "nonce": accessToken.cnf.nonce,
       "iat": now,
-      "exp": now + 120
+      "exp": now + 120,
     };
-
+    if(ath)payload.ath = ath;
+    
     let privateKey = await jose.JWK.asKey(sessionPopKeyPair.privateKey, "pem");
-    let jwk = await jose.JWK.asKey(sessionPopKeyPair.publicKey, "pem");
+    let jwk = (await jose.JWK.asKey(sessionPopKeyPair.publicKey, "pem")).toJSON(true);;
+    jwk.use = "sig";
+    jwk.alg = "ES256";
     let jwtToken = await jose.JWS.createSign({ "format": 'compact', "fields": { "typ": 'dpop+jwt', "jwk": jwk } }, { "key": privateKey, "reference": false }).update(JSON.stringify(payload)).final();
     return jwtToken;
   } catch (error) {
@@ -214,6 +203,61 @@ module.exports.base64URLEncode = (str) => {
 module.exports.sha256 = (buffer) => {
   return crypto.createHash('sha256').update(buffer).digest();
 };
+
+/**
+ * Generate Random String
+ * 
+ * This function generates a alphanumeric random string with specified length
+ * 
+ * @param {string} length - The length of the random string
+ * @returns {string} - Returns a random string
+ */
+module.exports.generateRandomString = generateRandomString;
+
+/**
+ * Generate JWK thumbprint
+ * 
+ * This function generates the thumbpring from a jwk
+ * 
+ * @param {string} jwk - jwk in pem format
+ * @returns {string} - Returns the jwk thumbprint
+ */
+module.exports.generateJwkThumbprint= async(jwk) =>{
+  let jwkKey = await jose.JWK.asKey(jwk, 'pem');
+  let jwkThumbprintBuffer = await jwkKey.thumbprint('SHA-256');
+  let jwkThumbprint = jose.util.base64url.encode(jwkThumbprintBuffer, 'utf8');
+
+  return jwkThumbprint;
+}
+
+/**
+ * Get Private Key
+ * 
+ * This methods will decrypt P12 Certificate and retrieve the Private key with the passphrase
+ * 
+ * @param {File} secureCert - P12 file with client private key
+ * @param {string} passphrase - Passphrase required to decrypt the passphrase
+ * @returns {Promise} - Returns certificate and private key from p12
+ */
+ module.exports.decryptPrivateKey = (secureCert, passphrase) => {
+  const p12 = fs.readFileSync(secureCert);
+  return new Promise((resolve, reject) => {
+    pem.readPkcs12(p12, { p12Password: passphrase },
+      (error, cert) => {
+        if (error) {
+          logger.error('decryptPrivateKey - Error: ', error);
+          reject(error);
+        }
+        else {
+          let result = {
+            "cert": cert.cert,
+            "key": cert.key
+          }
+          resolve(result);
+        }
+      });
+  })
+}
 
 function generateRandomString(length) {
   return srs({ alphanumeric: true, length: length ? length : 40 });

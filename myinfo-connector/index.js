@@ -64,10 +64,15 @@ class MyInfoConnector {
         } else {
             CONFIG.REDIRECT_URL = config.REDIRECT_URL;
         }
-        if (!config.CLIENT_PRIVATE_KEY) {
-            throw (constant.ERROR_CONFIGURATION_CLIENT_PRIVATE_KEY_NOT_FOUND);
+        if (!config.CLIENT_PRIVATE_SIGNING_KEY) {
+            throw (constant.ERROR_CONFIGURATION_CLIENT_PRIVATE_SIGNING_KEY_NOT_FOUND);
         } else {
-            CONFIG.CLIENT_PRIVATE_KEY = fs.readFileSync(config.CLIENT_PRIVATE_KEY, 'utf8');
+            CONFIG.CLIENT_PRIVATE_SIGNING_KEY = fs.readFileSync(config.CLIENT_PRIVATE_SIGNING_KEY, 'utf8');
+        }
+        if (!config.CLIENT_PRIVATE_ENCRYPTION_KEY) {
+            throw (constant.ERROR_CONFIGURATION_CLIENT_PRIVATE_ENCRYPTION_KEY_NOT_FOUND);
+        } else {
+            CONFIG.CLIENT_PRIVATE_ENCRYPTION_KEY = fs.readFileSync(config.CLIENT_PRIVATE_ENCRYPTION_KEY, 'utf8');
         }
         if (!config.TOKEN_URL) {
             throw (constant.ERROR_CONFIGURATION_TOKEN_URL_NOT_FOUND);
@@ -157,8 +162,9 @@ class MyInfoConnector {
      * - Get Access Token (Token API) - to get Access Token by using the Auth Code
      * - Get Person Data (Person API) - to get Person Data by using the Access Token
      * 
-     * @param {string} authCode - Authorization Code from Authorize API
-     * @returns {Promise} - Returns the Person Data (Payload decrypted + Signature validated)
+     * @param {string} authCode - Authorization Code from /authorize API
+     * @param {string} codeVerifier - Code verifier of the code challenge generated during /authorize call
+     * @returns {Object} - Returns the Person Data (Payload decrypted + Signature validated)
      */
     getMyInfoPersonData = async function (authCode, codeVerifier) {
         if (!this.isInitialized) {
@@ -166,11 +172,10 @@ class MyInfoConnector {
         }
 
         try {
-            let sessionEncKeyPair = CONFIG.ENABLE_JWE ? await this.securityHelper.generateSessionKeyPair() : null;
             let sessionPopKeyPair = CONFIG.ENABLE_JWS ? await this.securityHelper.generateSessionKeyPair() : null;
-            let createTokenResult = await this.getAccessToken(authCode, codeVerifier, sessionEncKeyPair, sessionPopKeyPair);
+            let createTokenResult = await this.getAccessToken(authCode, codeVerifier, sessionPopKeyPair);
             let accessToken = JSON.parse(createTokenResult).access_token;
-            let personData = await this.getPersonData(accessToken, sessionEncKeyPair, sessionPopKeyPair);
+            let personData = await this.getPersonData(accessToken, sessionPopKeyPair);
             return personData;
         } catch (error) {
             throw (error);
@@ -185,18 +190,20 @@ class MyInfoConnector {
      * Your application needs to provide a valid "authorisation code" 
      * from the authorize API in exchange for the "access token".
      * 
-     * @param {string} authCode - Authorization Code from authorize API
-     * @returns {Promise} - Returns the Access Token
+     * @param {string} authCode - Authorization Code from /authorize API
+     * @param {string} codeVerifier - Code verifier of the code challenge generated during /authorize call
+     * @param {string} sessionPopKeyPair - Session epheramal key pair generated for DPoP in /token call
+     * @returns {Object} - Returns the Access Token
      */
-    getAccessToken = async function (authCode, codeVerifier, sessionEncKeyPair, sessionPopKeyPair) {
+    getAccessToken = async function (authCode, codeVerifier, sessionPopKeyPair) {
         if (!this.isInitialized) {
             throw (constant.ERROR_UNKNOWN_NOT_INIT);
         }
 
         try {
-            let privateKey = CONFIG.CLIENT_PRIVATE_KEY;
+            let privateSigningKey = CONFIG.CLIENT_PRIVATE_SIGNING_KEY;
 
-            let tokenResult = await this.callTokenAPI(authCode, privateKey, codeVerifier, sessionEncKeyPair, sessionPopKeyPair);
+            let tokenResult = await this.callTokenAPI(authCode, privateSigningKey, codeVerifier, sessionPopKeyPair);
             let token = tokenResult.msg;
             logger.debug('Access Token: ', token);
 
@@ -217,15 +224,16 @@ class MyInfoConnector {
      * form on your application.
      * 
      * @param {string} accessToken - Access token from Token API
+     * @param {string} sessionPopKeyPair - Session epheramal key pair generated for DPoP in /token call
      * @returns {Promise} Returns the Person Data (Payload decrypted + Signature validated)
      */
-    getPersonData = async function (accessToken, sessionEncKeyPair, sessionPopKeyPair) {
+    getPersonData = async function (accessToken, sessionPopKeyPair) {
         if (!this.isInitialized) {
             throw (constant.ERROR_UNKNOWN_NOT_INIT);
         }
 
         try {
-            let callPersonRequestResult = await this.getPersonDataWithToken(accessToken, sessionEncKeyPair, sessionPopKeyPair);
+            let callPersonRequestResult = await this.getPersonDataWithToken(accessToken, sessionPopKeyPair);
             logger.debug('Person Data: ', callPersonRequestResult);
 
             return callPersonRequestResult;
@@ -242,29 +250,32 @@ class MyInfoConnector {
      * and call the Token API to retrieve access Token
      * 
      * @param {string} authCode - Authorization Code from authorize API
-     * @param {File} privateKey - The Client Private Key in PEM format
+     * @param {File} privateSigningKey - The Client Private signing Key in PEM format
+     * @param {string} codeVerifier - Code verifier of the code challenge generated during /authorize call
+     * @param {string} sessionPopKeyPair - Session epheramal key pair generated for DPoP in /token call
      * @returns {Promise} - Returns the Access Token
      */
-    callTokenAPI = async function (authCode, privateKey, codeVerifier, sessionEncKeyPair, sessionPopKeyPair) {
+    callTokenAPI = async function (authCode, privateSigningKey, codeVerifier, sessionPopKeyPair) {
 
         let cacheCtl = "no-cache";
         let contentType = "application/x-www-form-urlencoded";
         let method = constant.HTTP_METHOD.POST;
         let clientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-
+        let jktThumbprint = await this.securityHelper.generateJwkThumbprint(sessionPopKeyPair.publicKey)
         // assemble params for Token API
-        let strParams = "grant_type=authorization_code" +
+        let strParams = `grant_type=authorization_code` +
             "&code=" + authCode +
             "&redirect_uri=" + CONFIG.REDIRECT_URL +
             "&client_id=" + CONFIG.CLIENT_ID +
             "&code_verifier=" + codeVerifier +
             "&client_assertion_type=" + clientAssertionType +
-            "&client_assertion=" + await this.securityHelper.generateClientAssertion(CONFIG.TOKEN_URL, CONFIG.CLIENT_ID, privateKey, sessionEncKeyPair, sessionPopKeyPair);
+            "&client_assertion=" + await this.securityHelper.generateClientAssertion(CONFIG.TOKEN_URL, CONFIG.CLIENT_ID, privateSigningKey, jktThumbprint);
 
         let params = querystring.parse(strParams);
+        let dPoP= await this.securityHelper.generateDpopProof(CONFIG.TOKEN_URL,constant.HTTP_METHOD.POST, sessionPopKeyPair, null);
 
         // assemble headers for Token API
-        let strHeaders = "Content-Type=" + contentType + "&Cache-Control=" + cacheCtl;
+        let strHeaders = `Content-Type=${contentType}&Cache-Control=${cacheCtl}&DPoP=${dPoP}`;
         let headers = querystring.parse(strHeaders);
 
         // invoke Token API
@@ -285,7 +296,8 @@ class MyInfoConnector {
      * call the Person API to get the encrypted Person Data
      * 
      * @param {string} sub - The retrieved uinfin or uuid sub from the decoded token
-     * @param {string} accessToken - The Access token from Token API that has been verified and decoded from Token API 
+     * @param {string} accessToken - The Access token from Token API that has been verified and decoded from /token call
+     * @param {string} sessionPopKeyPair - Session epheramal key pair generated for DPoP in /token call
      * @returns {Promise} Returns result from calling Person API
      */
     callPersonAPI = async function (sub, accessToken, sessionPopKeyPair) {
@@ -305,8 +317,7 @@ class MyInfoConnector {
         let method = constant.HTTP_METHOD.GET;
 
         // assemble params for Person API
-        let strParams = "client_id=" + CONFIG.CLIENT_ID +
-            "&scope=" + encodeURIComponent(CONFIG.SCOPE);
+        let strParams ="scope=" + encodeURIComponent(CONFIG.SCOPE);
 
         //Singpass e-service ID will only be passed in for Myinfo TUO applications
         if (CONFIG.MYINFO_SINGPASS_ESERVICE_ID) {
@@ -320,11 +331,12 @@ class MyInfoConnector {
         // Generate dpop token only if ENABLE_JWE flag is true
         if (CONFIG.ENABLE_JWE) {
             let decodedToken = await this.securityHelper.verifyJWS(accessToken, CONFIG.AUTHORIZE_JWKS_URL);
-            let dpopToken = await this.securityHelper.generateDpop(urlLink, decodedToken, method, sessionPopKeyPair);
+            let ath = this.securityHelper.base64URLEncode(this.securityHelper.sha256(accessToken))
+            let dpopToken = await this.securityHelper.generateDpopProof(urlLink, method, sessionPopKeyPair, ath);
             headers['dpop'] = dpopToken;
         }
 
-        headers['Authorization'] = "Bearer " + accessToken;
+        headers['Authorization'] = "DPoP " + accessToken;
 
         logger.info('Authorization Header for MyInfo Person API: ', JSON.stringify(headers));
 
@@ -347,9 +359,10 @@ class MyInfoConnector {
      * It will verify the Person API data's signature and decrypt the result.
      * 
      * @param {string} accessToken - The token that has been verified from Token API 
+     * @param {string} sessionPopKeyPair - Session epheramal key pair generated for DPoP in /token call
      * @returns {Promise} Returns decrypted result from calling Person API
      */
-    getPersonDataWithToken = async function (accessToken, sessionEncKeyPair, sessionPopKeyPair) {
+    getPersonDataWithToken = async function (accessToken, sessionPopKeyPair) {
         try {
             let decodedToken = await this.securityHelper.verifyJWS(accessToken, CONFIG.AUTHORIZE_JWKS_URL);
             logger.debug('Decoded Access Token (from MyInfo Token API): ', decodedToken);
@@ -372,7 +385,7 @@ class MyInfoConnector {
                     decryptedResponse = JSON.parse(msg.toString());
                 } else {
                     logger.debug('MyInfo PersonAPI Response (JWE+JWS): ', msg);
-                    let jws = await this.securityHelper.decryptJWEWithKey(msg, sessionEncKeyPair);
+                    let jws = await this.securityHelper.decryptJWEWithKey(msg, CONFIG.CLIENT_PRIVATE_ENCRYPTION_KEY);
                     logger.debug('Decrypted JWE: ', jws);
                     decryptedResponse = jws;
                 }

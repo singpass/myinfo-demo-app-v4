@@ -14,7 +14,8 @@ let ENVIRONMENT = process.argv[2];
 
 let APP_CONFIG = {
   'DEMO_APP_CLIENT_ID': 'STG2-MYINFO-SELF-TEST', //need to update to demo app for roll out
-  'DEMO_APP_CLIENT_PRIVATE_KEY': './cert/your-sample-app-certificate-private-key.pem',
+  'DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY': './cert/your-sample-app-signing-private-key.pem',
+  'DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEY': './cert/your-sample-app-encryption-private-key.pem',
   'DEMO_APP_CALLBACK_URL': 'http://localhost:3001/callback',
   'DEMO_APP_PURPOSE_ID': 'demonstration',
   'DEMO_APP_SCOPES': 'uinfin name sex race nationality dob email mobileno regadd housingtype hdbtype marital edulevel noa-basic ownerprivate cpfcontributions cpfbalances',
@@ -57,7 +58,8 @@ let APP_CONFIG = {
  */
 let MYINFO_CONNECTOR_CONFIG = {
   'CLIENT_ID': APP_CONFIG.DEMO_APP_CLIENT_ID,
-  'CLIENT_PRIVATE_KEY': APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_KEY,
+  'CLIENT_PRIVATE_SIGNING_KEY': APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY,
+  'CLIENT_PRIVATE_ENCRYPTION_KEY': APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEY,
   'REDIRECT_URL': APP_CONFIG.DEMO_APP_CALLBACK_URL,
   'SCOPE': APP_CONFIG.DEMO_APP_SCOPES,
   'AUTHORIZE_JWKS_URL': `https://test.authorise.singpass.gov.sg/.well-known/keys.json`,
