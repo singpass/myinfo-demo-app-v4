@@ -93,7 +93,7 @@ Click **RETRIEVE MYINFO** and select the test user ID from the Mock Pass.
 
 ## <a name="lib"></a>MyInfo Connector NodeJS
 
-This demo application is using the [myinfo-connector-nodejs](https://www.npmjs.com/package/myinfo-connector-nodejs) library. MyInfo Connector aims to simplify consumer's integration effort by providing an easy to use Javascript library to integrate into your application.
+This demo application is using the [myinfo-connector-v4-nodejs](https://www.npmjs.com/package/myinfo-connector-v4-nodejs) library. MyInfo Connector aims to simplify consumer's integration effort by providing an easy to use Javascript library to integrate into your application.
 
 
 ### <a name="problem"></a>Troubleshooting
