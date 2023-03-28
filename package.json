@@ -5,8 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "npm run test",
-    "test": "node app.js test",
-    "sandbox": "node app.js sandbox"
+    "test": "node app.js test"
   },
   "author": "MyInfo Team",
   "license": "ISC",
@@ -17,10 +16,15 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "lodash": "^4.17.21",
-    "log4js": "^6.3.0",
-    "node-jose": "^2.0.0",
     "path": "^0.12.7",
     "pug": "^3.0.2",
-    "secure-random-string": "^1.1.3"
+    "log4js": "^6.3.0",
+    "node-jose": "^2.2.0",
+    "npmrc": "^1.1.1",
+    "pem": "^1.14.4",
+    "secure-random-string": "^1.1.3",
+    "myinfo-connector-v4-nodejs": "1.0.2",
+    "axios": "^1.2.1",
+    "ajv": "^8.6.3"
   }
 }
