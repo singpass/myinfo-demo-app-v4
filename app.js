@@ -7,11 +7,13 @@ const colors = require("colors");
 const crypto = require("crypto");
 var MyInfoConnector = require("myinfo-connector-v4-nodejs");
 const fs = require("fs");
+const jose = require("node-jose");
 
 const app = express();
 const port = 3001;
 const config = require("./config/config.js");
 const connector = new MyInfoConnector(config.MYINFO_CONNECTOR_CONFIG);
+const { v4: uuidv4 } = require('uuid');
 
 var sessionIdCache = {};
 
@@ -33,6 +35,38 @@ app.use(cookieParser());
 
 app.get("/", function (req, res) {
   res.sendFile(__dirname + `/public/index.html`);
+});
+
+app.get("/jwks", async function (req, res) {
+  const keysPath = __dirname + "/keys.json";
+
+  let ks;
+  try {
+    ks = fs.readFileSync(keysPath);
+  } catch (e) {
+    ks = null;
+  }
+
+  let keyStore;
+  if (!ks) {
+    keyStore = jose.JWK.createKeyStore();
+
+    await keyStore.generate("EC", "P-256", { use: "sig", alg: "ES256" });
+    await keyStore.generate("EC", "P-256", {
+      use: "enc",
+      alg: "ECDH-ES+A256KW",
+    });
+
+    fs.writeFileSync(
+      keysPath,
+      JSON.stringify(keyStore.toJSON(true), null, "  ")
+    );
+  } else {
+    keyStore = await jose.JWK.asKeyStore(ks.toString());
+  }
+
+  // console.log(keyStore.get("7w-lDyQPgPAL1exliq00DcQ2cEsw422oRYUCwsR5NIE").toPEM(true))
+  res.send(keyStore.toJSON());
 });
 
 // get the environment variables (app info) from the config
@@ -91,9 +125,9 @@ function readFiles(dirname, onFileContent, onError) {
 app.post("/getPersonData", async function (req, res, next) {
   try {
     // get variables from frontend
-    var authCode = req.body.authCode;
+    const authCode = req.body.authCode;
     //retrieve code verifier from session cache
-    var codeVerifier = sessionIdCache[req.cookies.sid];
+    const codeVerifier = sessionIdCache[req.cookies.sid];
     console.log("Calling MyInfo NodeJs Library...".green);
 
     // retrieve private siging key and decode to utf8 from FS
@@ -114,7 +148,7 @@ app.post("/getPersonData", async function (req, res, next) {
       }
     );
 
-    //call myinfo connector to retrieve data
+    // call myinfo connector to retrieve data
     let personData = await connector.getMyInfoPersonData(
       authCode,
       codeVerifier,
@@ -139,6 +173,36 @@ app.post("/getPersonData", async function (req, res, next) {
     });
   }
 });
+
+async function verifyToken(context, token, keyStore) {
+  if (!token) return null;
+
+  try {
+    const singpassJwksURL =
+      process.env.SINGPASS_API_PREFIX + "/.well-known/keys";
+    const jwksResponse = await fetch(singpassJwksURL);
+    const jwks = await jwksResponse.json();
+
+    const [key] = keyStore.all({ use: "enc" });
+    const decrypt = jose.JWE.createDecrypt(key);
+    const decrypted = await decrypt.decrypt(token);
+
+    // const kid = decrypted.header.kid;
+    const signKey = jwks.keys.find((key) => key.use == "sig");
+    const signKeyJWK = await jose.JWK.asKey(signKey, "json");
+    const verify = jose.JWS.createVerify(signKeyJWK);
+    const payload = Buffer.from(decrypted.payload, "base64").toString();
+    await verify.verify(payload);
+
+    const components = payload.split(".");
+    const decoded = JSON.parse(base64url.decode(components[1]));
+    context.log("decoded", decoded);
+    return decoded;
+  } catch (error) {
+    context.log(error);
+    return null;
+  }
+}
 
 // Generate the code verifier and code challenge for PKCE flow
 app.post("/generateCodeChallenge", async function (req, res, next) {
