@@ -112,47 +112,62 @@ app.get("/login", (req, res) => {
 
 // callback function - directs back to home page
 app.get("/callback", async function (req, res) {
-  const authCode = req.query.code;
-  //retrieve code verifier from session cache
-  const codeVerifier = sessionIdCache[req.cookies.sid];
-  console.log("Calling MyInfo NodeJs Library...".green);
+  try {
+    const authCode = req.query.code;
+    //retrieve code verifier from session cache
+    const codeVerifier = sessionIdCache[req.cookies.sid];
+    console.log("Calling MyInfo NodeJs Library...".green);
 
-  // retrieve private siging key and decode to utf8 from FS
-  let privateSigningKey = fs.readFileSync(
-    config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY,
-    "utf8"
-  );
+    // retrieve private siging key and decode to utf8 from FS
+    let privateSigningKey = fs.readFileSync(
+      config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY,
+      "utf8"
+    );
 
-  let privateEncryptionKeys = [];
-  // retrieve private encryption keys and decode to utf8 from FS, insert all keys to array
-  console.log(
-    "config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS",
-    config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS
-  );
-  readFiles(
-    config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
-    (filename, content) => {
-      privateEncryptionKeys.push(content);
-    },
-    (err) => {
-      throw err;
-    }
-  );
+    let privateEncryptionKeys = [];
+    // retrieve private encryption keys and decode to utf8 from FS, insert all keys to array
+    console.log(
+      "config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS",
+      config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS
+    );
+    readFiles(
+      config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
+      (filename, content) => {
+        privateEncryptionKeys.push(content);
+      },
+      (err) => {
+        throw err;
+      }
+    );
 
-  console.log("authCode", authCode);
-  console.log("codeVerifier", codeVerifier);
-  console.log("privateSigningKey", privateSigningKey);
-  console.log("privateEncryptionKeys", privateEncryptionKeys);
+    console.log("authCode", authCode);
+    console.log("codeVerifier", codeVerifier);
+    console.log("privateSigningKey", privateSigningKey);
+    console.log("privateEncryptionKeys", privateEncryptionKeys);
 
-  // call myinfo connector to retrieve data
-  let personData = await connector.getMyInfoPersonData(
-    authCode,
-    codeVerifier,
-    privateSigningKey,
-    privateEncryptionKeys
-  );
+    // call myinfo connector to retrieve data
+    let personData = await connector.getMyInfoPersonData(
+      authCode,
+      codeVerifier,
+      privateSigningKey,
+      privateEncryptionKeys
+    );
 
-  console.log("personData", personData);
+    /* 
+      P/s: Your logic to handle the person data ...
+    */
+    console.log(
+      "--- Sending Person Data From Your-Server (Backend) to Your-Client (Frontend)---:"
+        .green
+    );
+    console.log(JSON.stringify(personData)); // log the data for demonstration purpose only
+  } catch (error) {
+    console.log("---MyInfo NodeJs Library Error---".red);
+    console.log(error);
+    res.status(500).send({
+      error: error,
+    });
+  }
 });
 
 //function to read multiple files from a directory
