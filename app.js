@@ -158,7 +158,7 @@ app.get("/callback", async function (req, res) {
     // Construct the final URL
     let finalRedirectURL = tadabaseRedirectURL + "?" + queryString;
 
-    console.log(finalRedirectURL);
+    console.log(finalRedirectURL); // for testing only
 
     res.redirect(finalRedirectURL);
   } catch (error) {
@@ -220,7 +220,12 @@ function dataExtractor(data) {
     formValues.email = String(data.email.value);
   }
 
-  if (data.mobileno && data.mobileno.prefix && data.mobileno.areacode && data.mobileno.nbr) {
+  if (
+    data.mobileno &&
+    data.mobileno.prefix &&
+    data.mobileno.areacode &&
+    data.mobileno.nbr
+  ) {
     formValues.mobileno =
       String(data.mobileno.prefix.value) +
       String(data.mobileno.areacode.value) +
@@ -228,7 +233,13 @@ function dataExtractor(data) {
       String(data.mobileno.nbr.value);
   }
 
-  if (data.regadd && data.regadd.type === "SG" && data.regadd.block && data.regadd.street && data.regadd.postal) {
+  if (
+    data.regadd &&
+    data.regadd.type === "SG" &&
+    data.regadd.block &&
+    data.regadd.street &&
+    data.regadd.postal
+  ) {
     formValues.regadd =
       String(data.regadd.block.value) +
       " " +
@@ -236,8 +247,14 @@ function dataExtractor(data) {
       " \n" +
       "Singapore " +
       String(data.regadd.postal.value);
-  } else if (data.regadd && data.regadd.type === "Unformatted" && data.regadd.line1 && data.regadd.line2) {
-    formValues.regadd = String(data.regadd.line1.value) + "\n" + String(data.regadd.line2.value);
+  } else if (
+    data.regadd &&
+    data.regadd.type === "Unformatted" &&
+    data.regadd.line1 &&
+    data.regadd.line2
+  ) {
+    formValues.regadd =
+      String(data.regadd.line1.value) + "\n" + String(data.regadd.line2.value);
   }
 
   if (data.residentialstatus) {
@@ -245,8 +262,13 @@ function dataExtractor(data) {
   }
 
   if (data.cpfemployers && data.cpfemployers.history) {
-    const latestEmployer = data.cpfemployers.history[data.cpfemployers.history.length - 1];
-    if (latestEmployer && latestEmployer.employer && latestEmployer.employer.value) {
+    const latestEmployer =
+      data.cpfemployers.history[data.cpfemployers.history.length - 1];
+    if (
+      latestEmployer &&
+      latestEmployer.employer &&
+      latestEmployer.employer.value
+    ) {
       formValues.cpfemployers = String(latestEmployer.employer.value);
     }
   }
