@@ -67,12 +67,12 @@ app.get("/jwks", async function (req, res) {
 app.get("/login", (req, res) => {
   tadabaseRedirectURL = req.query.tadabaseRedirectURL;
 
-  const clientId = config.APP_CONFIG.DEMO_APP_CLIENT_ID;
-  const redirectUrl = config.APP_CONFIG.DEMO_APP_CALLBACK_URL;
-  const scope = config.APP_CONFIG.DEMO_APP_SCOPES;
-  const purposeId = config.APP_CONFIG.DEMO_APP_PURPOSE_ID;
+  const clientId = config.APP_CONFIG.APP_CLIENT_ID;
+  const redirectUrl = config.APP_CONFIG.APP_CALLBACK_URL;
+  const scope = config.APP_CONFIG.APP_SCOPES;
+  const purposeId = config.APP_CONFIG.APP_PURPOSE_ID;
   const authApiUrl = config.APP_CONFIG.MYINFO_API_AUTHORIZE;
-  // const subentity = config.APP_CONFIG.DEMO_APP_SUBENTITY_ID;
+  // const subentity = config.APP_CONFIG.APP_SUBENTITY_ID;
 
   const method = "S256";
   // const clientAssertionType =
@@ -120,14 +120,14 @@ app.get("/callback", async function (req, res) {
 
     // retrieve private siging key and decode to utf8 from FS
     let privateSigningKey = fs.readFileSync(
-      config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY,
+      config.APP_CONFIG.APP_CLIENT_PRIVATE_SIGNING_KEY,
       "utf8"
     );
 
     let privateEncryptionKeys = [];
     // retrieve private encryption keys and decode to utf8 from FS, insert all keys to array
     readFiles(
-      config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
+      config.APP_CONFIG.APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
       (filename, content) => {
         privateEncryptionKeys.push(content);
       },
