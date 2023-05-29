@@ -189,63 +189,67 @@ function readFiles(dirname, onFileContent, onError) {
   });
 }
 
-// used to output data items with value or desc
-function str(data) {
-  if (!data) return null;
-  if (data.value) return data.value;
-  else if (data.desc) return data.desc;
-  else if (typeof data == "string") return data;
-  else return "";
-}
-
 function dataExtractor(data) {
-  let noaData = "";
-  let address = "";
-  if (data["noa-basic"]) {
-    noaData = str(data["noa-basic"].amount)
-      ? formatMoney(str(data["noa-basic"].amount), 2, ".", ",")
-      : "";
+  let formValues = {};
+
+  if (data.uinfin) {
+    formValues.uinfin = String(data.uinfin.value);
   }
-  if (data.regadd.type == "SG") {
-    address =
-      str(data.regadd.country) == ""
-        ? ""
-        : str(data.regadd.block) +
-          " " +
-          str(data.regadd.building) +
-          " \n" +
-          "#" +
-          str(data.regadd.floor) +
-          "-" +
-          str(data.regadd.unit) +
-          " " +
-          str(data.regadd.street) +
-          " \n" +
-          "Singapore " +
-          str(data.regadd.postal);
-  } else if (data.regadd.type == "Unformatted") {
-    address = str(data.regadd.line1) + "\n" + str(data.regadd.line2);
+
+  if (data.name) {
+    formValues.name = String(data.name.value);
   }
-  let formValues = {
-    uinfin: str(data.uinfin),
-    name: str(data.name),
-    sex: str(data.sex),
-    race: str(data.race),
-    nationality: str(data.nationality),
-    dob: str(data.dob),
-    email: str(data.email),
-    mobileno:
-      str(data.mobileno.prefix) +
-      str(data.mobileno.areacode) +
+
+  if (data.sex) {
+    formValues.sex = String(data.sex.desc);
+  }
+
+  if (data.race) {
+    formValues.race = String(data.race.desc);
+  }
+
+  if (data.nationality) {
+    formValues.nationality = String(data.nationality.desc);
+  }
+
+  if (data.dob) {
+    formValues.dob = String(data.dob.value);
+  }
+
+  if (data.email) {
+    formValues.email = String(data.email.value);
+  }
+
+  if (data.mobileno && data.mobileno.prefix && data.mobileno.areacode && data.mobileno.nbr) {
+    formValues.mobileno =
+      String(data.mobileno.prefix.value) +
+      String(data.mobileno.areacode.value) +
       " " +
-      str(data.mobileno.nbr),
-    regadd: address,
-    housingtype:
-      str(data.housingtype) == "" ? str(data.hdbtype) : str(data.housingtype),
-    marital: str(data.marital),
-    edulevel: str(data.edulevel),
-    assessableincome: noaData,
-  };
+      String(data.mobileno.nbr.value);
+  }
+
+  if (data.regadd && data.regadd.type === "SG" && data.regadd.block && data.regadd.street && data.regadd.postal) {
+    formValues.regadd =
+      String(data.regadd.block.value) +
+      " " +
+      String(data.regadd.street.value) +
+      " \n" +
+      "Singapore " +
+      String(data.regadd.postal.value);
+  } else if (data.regadd && data.regadd.type === "Unformatted" && data.regadd.line1 && data.regadd.line2) {
+    formValues.regadd = String(data.regadd.line1.value) + "\n" + String(data.regadd.line2.value);
+  }
+
+  if (data.residentialstatus) {
+    formValues.residentialstatus = String(data.residentialstatus.desc);
+  }
+
+  if (data.cpfemployers && data.cpfemployers.history) {
+    const latestEmployer = data.cpfemployers.history[data.cpfemployers.history.length - 1];
+    if (latestEmployer && latestEmployer.employer && latestEmployer.employer.value) {
+      formValues.cpfemployers = String(latestEmployer.employer.value);
+    }
+  }
 
   return formValues;
 }
