@@ -1,3 +1,6 @@
 node_modules
 package-lock.json
 .scannerwork
+
+prod.env
+staging.env
