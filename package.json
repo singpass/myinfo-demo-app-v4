@@ -1,14 +1,13 @@
 {
-  "name": "myinfo-demo-app",
-  "version": "3.0.0",
-  "description": "This is MyInfo Demo App",
+  "name": "myinfo-app",
+  "version": "1.0.0",
+  "description": "This is MyInfo App",
   "main": "app.js",
   "scripts": {
-    "start": "npm run test",
-    "test": "node app.js test"
+    "start": "node app.js"
   },
-  "author": "MyInfo Team",
-  "license": "ISC",
+  "author": "Yahya Khamayseh",
+  "license": "",
   "dependencies": {
     "ajv": "^8.6.3",
     "axios": "^1.2.1",
