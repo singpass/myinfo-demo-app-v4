@@ -1,10 +1,10 @@
 const express = require("express");
-var path = require("path");
-var bodyParser = require("body-parser");
-var cookieParser = require("cookie-parser");
+let path = require("path");
+let bodyParser = require("body-parser");
+let cookieParser = require("cookie-parser");
 const cors = require("cors");
 const crypto = require("crypto");
-var MyInfoConnector = require("myinfo-connector-v4-nodejs");
+let MyInfoConnector = require("myinfo-connector-v4-nodejs");
 const fs = require("fs");
 const jose = require("node-jose");
 
@@ -13,7 +13,7 @@ const port = 3001;
 const config = require("./config/config.js");
 const connector = new MyInfoConnector(config.MYINFO_CONNECTOR_CONFIG);
 
-var sessionIdCache = {};
+let sessionIdCache = {};
 let tadabaseRedirectURL;
 
 app.use(express.json());
@@ -151,9 +151,16 @@ app.get("/callback", async function (req, res) {
       "--- Sending Person Data From Your-Server (Backend) to Your-Client (Frontend)---:"
         .green
     );
-    console.log(JSON.stringify(personData)); // log the data for demonstration purpose only
-    res.status(200).send(personData); //return personData
 
+    const formValues = dataExtractor(personData);
+    // Convert JSON object to query string
+    let queryString = objectToQueryString(formValues);
+    // Construct the final URL
+    let finalRedirectURL = tadabaseRedirectURL + "?" + queryString;
+
+    console.log(finalRedirectURL);
+
+    res.redirect(finalRedirectURL);
   } catch (error) {
     console.log("---MyInfo NodeJs Library Error---".red);
     console.log(error);
@@ -180,6 +187,81 @@ function readFiles(dirname, onFileContent, onError) {
       });
     });
   });
+}
+
+// used to output data items with value or desc
+function str(data) {
+  if (!data) return null;
+  if (data.value) return data.value;
+  else if (data.desc) return data.desc;
+  else if (typeof data == "string") return data;
+  else return "";
+}
+
+function dataExtractor(data) {
+  let noaData = "";
+  let address = "";
+  if (data["noa-basic"]) {
+    noaData = str(data["noa-basic"].amount)
+      ? formatMoney(str(data["noa-basic"].amount), 2, ".", ",")
+      : "";
+  }
+  if (data.regadd.type == "SG") {
+    address =
+      str(data.regadd.country) == ""
+        ? ""
+        : str(data.regadd.block) +
+          " " +
+          str(data.regadd.building) +
+          " \n" +
+          "#" +
+          str(data.regadd.floor) +
+          "-" +
+          str(data.regadd.unit) +
+          " " +
+          str(data.regadd.street) +
+          " \n" +
+          "Singapore " +
+          str(data.regadd.postal);
+  } else if (data.regadd.type == "Unformatted") {
+    address = str(data.regadd.line1) + "\n" + str(data.regadd.line2);
+  }
+  let formValues = {
+    uinfin: str(data.uinfin),
+    name: str(data.name),
+    sex: str(data.sex),
+    race: str(data.race),
+    nationality: str(data.nationality),
+    dob: str(data.dob),
+    email: str(data.email),
+    mobileno:
+      str(data.mobileno.prefix) +
+      str(data.mobileno.areacode) +
+      " " +
+      str(data.mobileno.nbr),
+    regadd: address,
+    housingtype:
+      str(data.housingtype) == "" ? str(data.hdbtype) : str(data.housingtype),
+    marital: str(data.marital),
+    edulevel: str(data.edulevel),
+    assessableincome: noaData,
+  };
+
+  return formValues;
+}
+
+// Function to convert JSON object to a query string
+function objectToQueryString(obj) {
+  let queryString = "";
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      if (queryString !== "") {
+        queryString += "&";
+      }
+      queryString += key + "=" + encodeURIComponent(obj[key]);
+    }
+  }
+  return queryString;
 }
 
 app.listen(port, () =>
