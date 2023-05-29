@@ -23,6 +23,7 @@
     "log4js": "^6.3.0",
     "myinfo-connector-v4-nodejs": "1.0.2",
     "node-jose": "^2.2.0",
+    "nodemon": "^2.0.22",
     "npmrc": "^1.1.1",
     "path": "^0.12.7",
     "pem": "^1.14.4",

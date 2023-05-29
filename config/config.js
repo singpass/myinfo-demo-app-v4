@@ -1,5 +1,5 @@
 /**
- * Myinfo Demo App supports the following environments:
+ * Myinfo App supports the following environments:
  *
  * TEST:
  * With Encryption and Signing
@@ -12,26 +12,25 @@ let urlEnvironmentPrefix =
   process.env.NODE_ENV == "prod" ? "" : `${process.env.NODE_ENV}.`;
 
 /**
- * Set the following demo app configurations for the demo app to run
+ * Set the following app configurations for the app to run
  *
- * DEMO_APP_CLIENT_ID: Client id provided during onboarding
- * DEMO_APP_SUBENTITY_ID: optional parameter for platform applications only
- * DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY : private signing key for client_assertion
- * DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS : folder to private encryption keys, allow multiple keys to match multiple encryption keys in JWKS
- * DEMO_APP_PURPOSE_ID: purpose_id with reference to purpose that will be shown to user on consent page provided during onboarding
- * DEMO_APP_SCOPES: Space separated list of attributes to be retrieved from Myinfo
+ * APP_CLIENT_ID: Client id provided during onboarding
+ * APP_SUBENTITY_ID: optional parameter for platform applications only
+ * APP_CLIENT_PRIVATE_SIGNING_KEY : private signing key for client_assertion
+ * APP_CLIENT_PRIVATE_ENCRYPTION_KEYS : folder to private encryption keys, allow multiple keys to match multiple encryption keys in JWKS
+ * APP_PURPOSE_ID: purpose_id with reference to purpose that will be shown to user on consent page provided during onboarding
+ * APP_SCOPES: Space separated list of attributes to be retrieved from Myinfo
  * MYINFO_API_AUTHORIZE: The URL for Authorize API
  */
 let APP_CONFIG = {
-  // DEMO_APP_CLIENT_ID: "STG2-MYINFO-DEMO-APP",
-  DEMO_APP_CLIENT_ID: process.env.CLIENT_ID,
-  DEMO_APP_SUBENTITY_ID: "", //only for platform apps
-  DEMO_APP_CLIENT_PRIVATE_SIGNING_KEY:
-    "./cert/your-sample-app-signing-private-key.pem",
-  DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS: "./cert/encryption-private-keys/",
-  DEMO_APP_CALLBACK_URL: process.env.CALLBACK_URL,
-  DEMO_APP_PURPOSE_ID: process.env.PURPOSE_ID,
-  DEMO_APP_SCOPES:
+  APP_CLIENT_ID: process.env.CLIENT_ID,
+  APP_SUBENTITY_ID: "", //only for platform apps
+  APP_CLIENT_PRIVATE_SIGNING_KEY:
+    "./cert/signing-private-key.pem",
+  APP_CLIENT_PRIVATE_ENCRYPTION_KEYS: "./cert/encryption-private-keys/",
+  APP_CALLBACK_URL: process.env.CALLBACK_URL,
+  APP_PURPOSE_ID: process.env.PURPOSE_ID,
+  APP_SCOPES:
     "uinfin name sex race nationality dob email mobileno regadd residentialstatus cpfemployers",
   MYINFO_API_AUTHORIZE: process.env.AUTHORIZE_URL,
 };
@@ -71,10 +70,10 @@ let APP_CONFIG = {
  */
 
 let MYINFO_CONNECTOR_CONFIG = {
-  CLIENT_ID: APP_CONFIG.DEMO_APP_CLIENT_ID,
-  SUBENTITY_ID: APP_CONFIG.DEMO_APP_SUBENTITY_ID,
-  REDIRECT_URL: APP_CONFIG.DEMO_APP_CALLBACK_URL,
-  SCOPE: APP_CONFIG.DEMO_APP_SCOPES,
+  CLIENT_ID: APP_CONFIG.APP_CLIENT_ID,
+  SUBENTITY_ID: APP_CONFIG.APP_SUBENTITY_ID,
+  REDIRECT_URL: APP_CONFIG.APP_CALLBACK_URL,
+  SCOPE: APP_CONFIG.APP_SCOPES,
   AUTHORIZE_JWKS_URL: `https://${urlEnvironmentPrefix}authorise.singpass.gov.sg/.well-known/keys.json`,
   MYINFO_JWKS_URL: `https://${urlEnvironmentPrefix}myinfo.singpass.gov.sg/.well-known/keys.json`,
   TOKEN_URL: `https://${urlEnvironmentPrefix}api.myinfo.gov.sg/com/v4/token`,
@@ -83,10 +82,8 @@ let MYINFO_CONNECTOR_CONFIG = {
   USE_PROXY: "N",
   PROXY_TOKEN_URL: "",
   PROXY_PERSON_URL: "",
-  DEBUG_LEVEL: "info",
+  DEBUG_LEVEL: "debug",
 };
-
-console.log("MYINFO_CONNECTOR_CONFIG", MYINFO_CONNECTOR_CONFIG);
 
 module.exports.APP_CONFIG = APP_CONFIG;
 module.exports.MYINFO_CONNECTOR_CONFIG = MYINFO_CONNECTOR_CONFIG;

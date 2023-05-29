@@ -72,13 +72,13 @@ app.get("/login", (req, res) => {
   const scope = config.APP_CONFIG.DEMO_APP_SCOPES;
   const purposeId = config.APP_CONFIG.DEMO_APP_PURPOSE_ID;
   const authApiUrl = config.APP_CONFIG.MYINFO_API_AUTHORIZE;
-  const subentity = config.APP_CONFIG.DEMO_APP_SUBENTITY_ID;
+  // const subentity = config.APP_CONFIG.DEMO_APP_SUBENTITY_ID;
 
   const method = "S256";
-  const clientAssertionType =
-    "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+  // const clientAssertionType =
+  //   "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 
-  let securityEnable;
+  // let securityEnable;
 
   // call connector to generate code_challenge and code_verifier
   let pkceCodePair = connector.generatePKCECodePair();
@@ -126,10 +126,6 @@ app.get("/callback", async function (req, res) {
 
     let privateEncryptionKeys = [];
     // retrieve private encryption keys and decode to utf8 from FS, insert all keys to array
-    console.log(
-      "config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS",
-      config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS
-    );
     readFiles(
       config.APP_CONFIG.DEMO_APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
       (filename, content) => {
@@ -139,11 +135,6 @@ app.get("/callback", async function (req, res) {
         throw err;
       }
     );
-
-    console.log("authCode", authCode);
-    console.log("codeVerifier", codeVerifier);
-    console.log("privateSigningKey", privateSigningKey);
-    console.log("privateEncryptionKeys", privateEncryptionKeys);
 
     // call myinfo connector to retrieve data
     let personData = await connector.getMyInfoPersonData(
@@ -161,6 +152,8 @@ app.get("/callback", async function (req, res) {
         .green
     );
     console.log(JSON.stringify(personData)); // log the data for demonstration purpose only
+    res.status(200).send(personData); //return personData
+
   } catch (error) {
     console.log("---MyInfo NodeJs Library Error---".red);
     console.log(error);
@@ -190,5 +183,5 @@ function readFiles(dirname, onFileContent, onError) {
 }
 
 app.listen(port, () =>
-  console.log(`Demo App Client listening on port ${port}!`)
+  console.log(`Myinfo server is listening on port ${port}!`)
 );
