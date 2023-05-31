@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Trainee Form</title>
+    <style>
+      /* CSS styling goes here */
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+
+      form {
+        max-width: 500px;
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      input[type="text"],
+      textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        box-sizing: border-box;
+        margin-bottom: 10px;
+      }
+
+      .button-container {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      button {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      #getInfoButton {
+        padding: 0;
+        background-color: transparent;
+        border: none;
+      }
+
+      #getInfoButton:focus {
+        outline: none;
+      }
+
+      #getInfoButton img {
+        display: block;
+        width: 65%;
+        height: 65%;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Trainee Form</h1>
+
+    <form id="traineeForm">
+      <label for="uinfin">UINFIN:</label>
+      <input type="text" id="uinfin" name="uinfin" />
+
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" />
+
+      <label for="sex">Sex:</label>
+      <input type="text" id="sex" name="sex" />
+
+      <label for="race">Race:</label>
+      <input type="text" id="race" name="race" />
+
+      <label for="nationality">Nationality:</label>
+      <input type="text" id="nationality" name="nationality" />
+
+      <label for="dob">Date of Birth:</label>
+      <input type="text" id="dob" name="dob" />
+
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" />
+
+      <label for="mobileno">Mobile No:</label>
+      <input type="text" id="mobileno" name="mobileno" />
+
+      <label for="regadd">Residential Address:</label>
+      <textarea id="regadd" name="regadd"></textarea>
+
+      <label for="residentialstatus">Residential Status:</label>
+      <input type="text" id="residentialstatus" name="residentialstatus" />
+
+      <label for="cpfemployers">CPF Employers:</label>
+      <input type="text" id="cpfemployers" name="cpfemployers" />
+
+      <div class="container">
+        <div class="button-container">
+          <button type="button" onclick="getUserInfo()" id="getInfoButton">
+            <img src="Primary.png" alt="Logo" id="logoImage" />
+          </button>
+
+          <button type="button" onclick="createTrainee()">
+            Create Trainee
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <script>
+      function createTrainee() {
+        var form = document.getElementById("traineeForm");
+        var formData = new FormData(form);
+        // You can send the formData to the server or process it as needed
+        console.log(formData);
+      }
+
+      function getUserInfo() {
+        window.location.href = "/login";
+      }
+
+      // Function to extract query parameters from the URL
+      function getQueryParams() {
+        var queryParams = {};
+        var query = window.location.search.substring(1);
+        var params = query.split("&");
+        for (var i = 0; i < params.length; i++) {
+          var param = params[i].split("=");
+          var key = decodeURIComponent(param[0]);
+          var value = decodeURIComponent(param[1]);
+          queryParams[key] = value;
+        }
+        return queryParams;
+      }
+
+      // Fill the form fields with query parameters
+      function fillFormWithQueryParams() {
+        var queryParams = getQueryParams();
+        var form = document.getElementById("traineeForm");
+        for (var key in queryParams) {
+          if (queryParams.hasOwnProperty(key)) {
+            var field = form.elements[key];
+            if (field) field.value = queryParams[key];
+          }
+        }
+      }
+
+      // Call the fillFormWithQueryParams function when the page loads
+      window.onload = fillFormWithQueryParams;
+    </script>
+  </body>
+</html>

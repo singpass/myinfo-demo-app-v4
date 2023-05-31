@@ -14,15 +14,17 @@ const config = require("./config/config.js");
 const connector = new MyInfoConnector(config.MYINFO_CONNECTOR_CONFIG);
 
 let sessionIdCache = {};
-let tadabaseRedirectURL;
 
 app.use(express.json());
 app.use(cors());
 
-app.set("views", path.join(__dirname, "public/views"));
-app.set("view engine", "pug");
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, "public")));
 
-app.use(express.static("public"));
+// Set up a route to serve the HTML file
+app.get("/createTrainee", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 app.use(bodyParser.json());
 app.use(
@@ -65,8 +67,6 @@ app.get("/jwks", async function (req, res) {
 });
 
 app.get("/login", (req, res) => {
-  tadabaseRedirectURL = req.query.tadabaseRedirectURL;
-
   const clientId = config.APP_CONFIG.APP_CLIENT_ID;
   const redirectUrl = config.APP_CONFIG.APP_CALLBACK_URL;
   const scope = config.APP_CONFIG.APP_SCOPES;
@@ -156,7 +156,7 @@ app.get("/callback", async function (req, res) {
     // Convert JSON object to query string
     let queryString = objectToQueryString(formValues);
     // Construct the final URL
-    let finalRedirectURL = tadabaseRedirectURL + "?" + queryString;
+    let finalRedirectURL = process.env.CREATE_TRAINEE_URL + "?" + queryString;
 
     console.log(finalRedirectURL); // for testing only
 

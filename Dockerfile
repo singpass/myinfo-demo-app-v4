@@ -17,6 +17,7 @@ COPY . .
 ENV NODE_ENV=prod \
     CLIENT_ID=PROD-201806885D-PPICTECH-COURSEREGN \
     CALLBACK_URL=https://miprod.bestraining.app/callback \
+    CREATE_TRAINEE_URL=https://miprod.bestraining.app/createTrainee \
     PURPOSE_ID=17cb7e0b \
     AUTHORIZE_URL=https://api.myinfo.gov.sg/com/v4/authorize
 
