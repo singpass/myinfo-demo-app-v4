@@ -13,6 +13,8 @@ const port = 3001;
 const config = require("./config/config.js");
 const connector = new MyInfoConnector(config.MYINFO_CONNECTOR_CONFIG);
 
+const axios = require("axios");
+
 let sessionIdCache = {};
 
 app.use(express.json());
@@ -66,6 +68,58 @@ app.get("/jwks", async function (req, res) {
   res.send(keyStore.toJSON());
 });
 
+function createTadabaseInsertPayload(path, data) {
+  const fields = JSON.parse(fs.readFileSync(__dirname + path));
+  const payload = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    if (key in fields) {
+      payload[fields[key]] = value;
+    }
+  }
+
+  return payload;
+}
+
+app.get("/updateTadabaseTrainee", (req, res) => {
+  const traineeRecordId = req.query.traineeRecordId;
+  const redirectURL = req.query.redirectURL;
+
+  const trainee = {
+    traineeId: req.query.uinfin,
+    name: req.query.name,
+    traineeGender: req.query.sex,
+    race: req.query.race,
+    nationality: req.query.nationality,
+    dateOfBirth: req.query.dob,
+    email: req.query.email,
+    tfContactNumber: req.query.mobileno,
+    tfFullAddress: req.query.regadd,
+    tfEmployerName: req.query.cpfemployers,
+    recordId: traineeRecordId,
+  };
+
+  const headers = {
+    "X-Tadabase-App-id": "PzQ4D2eQJG",
+    "X-Tadabase-App-Key": "SIJYmFMJYHgS",
+    "X-Tadabase-App-Secret": "4bUXeHiqJxsaswM0saxy7ARp6jRTdvKm",
+    "X-Tadabase-Queue-Equation": "1",
+  };
+
+  const traineeTableId = "VX9QoerwYv";
+  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${traineeTableId}/records/${trainee.recordId}`;
+  const data = createTadabaseInsertPayload("/trainee.json", trainee);
+
+  axios
+    .post(apiURL, data, { headers })
+    .then((response) => {
+      console.log("Response:", response.data);
+      res.redirect(redirectURL);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+});
 app.get("/login", (req, res) => {
   const clientId = config.APP_CONFIG.APP_CLIENT_ID;
   const redirectUrl = config.APP_CONFIG.APP_CALLBACK_URL;

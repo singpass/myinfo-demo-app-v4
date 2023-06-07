@@ -2,6 +2,8 @@
 <html>
   <head>
     <title>Trainee Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <style>
       /* CSS styling goes here */
 
@@ -132,10 +134,56 @@
 
     <script>
       function createTrainee() {
-        var form = document.getElementById("traineeForm");
-        var formData = new FormData(form);
-        // You can send the formData to the server or process it as needed
-        console.log(formData);
+        var uinfin = document.getElementById("uinfin").value;
+        var name = document.getElementById("name").value;
+        var sex = document.getElementById("sex").value;
+        var race = document.getElementById("race").value;
+        var nationality = document.getElementById("nationality").value;
+        var dob = document.getElementById("dob").value;
+        var email = document.getElementById("email").value;
+        var mobileno = document.getElementById("mobileno").value;
+        var regadd = document.getElementById("regadd").value;
+        var residentialstatus =
+          document.getElementById("residentialstatus").value;
+        var cpfemployers = document.getElementById("cpfemployers").value;
+
+        var traineeRecordId = localStorage.getItem("traineeRecordId");
+        var redirectURL = localStorage.getItem("redirectURL");
+
+        // Create the URL with query parameters
+        var url =
+          "/updateTadabaseTrainee?" +
+          "uinfin=" +
+          encodeURIComponent(uinfin) +
+          "&name=" +
+          encodeURIComponent(name) +
+          "&sex=" +
+          encodeURIComponent(sex) +
+          "&race=" +
+          encodeURIComponent(race) +
+          "&nationality=" +
+          encodeURIComponent(nationality) +
+          "&dob=" +
+          encodeURIComponent(dob) +
+          "&email=" +
+          encodeURIComponent(email) +
+          "&mobileno=" +
+          encodeURIComponent(mobileno) +
+          "&regadd=" +
+          encodeURIComponent(regadd) +
+          "&residentialstatus=" +
+          encodeURIComponent(residentialstatus) +
+          "&cpfemployers=" +
+          encodeURIComponent(cpfemployers)+
+          "&traineeRecordId=" +
+          encodeURIComponent(traineeRecordId)+
+          "&redirectURL=" +
+          encodeURIComponent(redirectURL);
+
+        // update trainee in tadabase
+        window.location.href = "/updateTadabaseTrainee";
+        console.log(url);
+        window.location.href = url;
       }
 
       function getUserInfo() {
@@ -159,6 +207,20 @@
       // Fill the form fields with query parameters
       function fillFormWithQueryParams() {
         var queryParams = getQueryParams();
+
+        if (queryParams["traineeRecordId"] && queryParams["redirectURL"]) {
+          localStorage.setItem("traineeRecordId", queryParams["traineeRecordId"]);
+          localStorage.setItem("redirectURL", queryParams["redirectURL"]);
+        } else {
+          Object.keys(queryParams).forEach(function (key) {
+            if (key && queryParams[key]) {
+              $("#" + key)
+                .prop("readonly", true)
+                .prop("disabled", true);
+            }
+          });
+        }
+
         var form = document.getElementById("traineeForm");
         for (var key in queryParams) {
           if (queryParams.hasOwnProperty(key)) {
