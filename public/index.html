@@ -174,15 +174,12 @@
           "&residentialstatus=" +
           encodeURIComponent(residentialstatus) +
           "&cpfemployers=" +
-          encodeURIComponent(cpfemployers)+
+          encodeURIComponent(cpfemployers) +
           "&traineeRecordId=" +
-          encodeURIComponent(traineeRecordId)+
+          encodeURIComponent(traineeRecordId) +
           "&redirectURL=" +
           encodeURIComponent(redirectURL);
-
-        // update trainee in tadabase
-        window.location.href = "/updateTadabaseTrainee";
-        console.log(url);
+          
         window.location.href = url;
       }
 
@@ -209,7 +206,10 @@
         var queryParams = getQueryParams();
 
         if (queryParams["traineeRecordId"] && queryParams["redirectURL"]) {
-          localStorage.setItem("traineeRecordId", queryParams["traineeRecordId"]);
+          localStorage.setItem(
+            "traineeRecordId",
+            queryParams["traineeRecordId"]
+          );
           localStorage.setItem("redirectURL", queryParams["redirectURL"]);
         } else {
           Object.keys(queryParams).forEach(function (key) {
