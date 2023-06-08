@@ -1,0 +1,16 @@
+{
+  "areaCode": "field_2560",
+  "countryCode": "field_2561",
+  "internationalPrefix": "field_2562",
+  "contactType": "field_2564",
+  "createdBy": "field_2566",
+  "modifiedBy": "field_2567",
+  "createdOn": "field_2568",
+  "modifiedOn": "field_2569",
+  "id": "field_2570",
+  "recordId": "field_2670",
+  "phoneNumber": "field_4271",
+  "tfContactNumber": "field_4419",
+  "eqContactNumber": "field_4471",
+  "recordStatus": "field_5003"
+}

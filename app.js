@@ -81,6 +81,96 @@ function createTadabaseInsertPayload(path, data) {
   return payload;
 }
 
+function mapSex(sex) {
+  const sexMapping = {
+    FEMALE: "Female",
+    MALE: "Male",
+  };
+
+  return sexMapping[sex] || sexMapping.MALE;
+}
+
+function mapRace(race) {
+  const raceMapping = {
+    CHINESE: "Chinese",
+    MALAY: "Malay",
+    INDIAN: "Indian",
+    EURASIAN: "Eurasian",
+    OTHERS: "Others",
+  };
+
+  return raceMapping[race.toUpperCase()] || raceMapping.OTHERS;
+}
+
+function mapNationality(nationality) {
+  const nationalityMapping = {
+    "SINGAPORE CITIZEN": "Singaporean Citizen",
+    "SINGAPORE PERMANENT RESIDENT": "Singaporean Permanent Resident",
+    OTHERS: "Others",
+  };
+
+  return (
+    nationalityMapping[nationality.toUpperCase()] || nationalityMapping.OTHERS
+  );
+}
+
+function formatDate(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // January is month 0
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  let timeSuffix = "AM";
+
+  if (hours > 12) {
+    hours -= 12;
+    timeSuffix = "PM";
+  }
+
+  return `${day}/${month}/${year} ${hours}:${minutes} ${timeSuffix}`;
+}
+
+function mapContactNumber(mobileno) {
+  const contactNumber = {
+    countryCode: mobileno?.substring(1, 3),
+    internationalPrefix: "+",
+    phoneNumber: mobileno?.substring(3),
+    contactType: "3 - Mobile Number",
+    tfContactNumber: mobileno,
+    recordStatus: "created",
+    createdOn: formatDate(new Date()),
+    createdBy: "DVWQW7GQZ4",
+  };
+  const headers = getTadabaseHeaders();
+  const contactNumberTableId = "VX9QobGNwY";
+  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${contactNumberTableId}/records`;
+  const data = createTadabaseInsertPayload(
+    "/contactNumber.json",
+    contactNumber
+  );
+
+  axios
+    .post(apiURL, data, { headers })
+    .then((response) => {
+      console.log("Response:", response.data);
+      return response.data.recordId;
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      return "";
+    });
+}
+
+function getTadabaseHeaders() {
+  return {
+    "X-Tadabase-App-id": "PzQ4D2eQJG",
+    "X-Tadabase-App-Key": "SIJYmFMJYHgS",
+    "X-Tadabase-App-Secret": "4bUXeHiqJxsaswM0saxy7ARp6jRTdvKm",
+    "X-Tadabase-Queue-Equation": "1",
+  };
+}
+
 app.get("/updateTadabaseTrainee", (req, res) => {
   const traineeRecordId = req.query.traineeRecordId;
   const redirectURL = req.query.redirectURL;
@@ -88,24 +178,19 @@ app.get("/updateTadabaseTrainee", (req, res) => {
   const trainee = {
     traineeId: req.query.uinfin,
     name: req.query.name,
-    traineeGender: req.query.sex,
-    race: req.query.race,
-    nationality: req.query.nationality,
+    traineeGender: mapSex(req.query.sex),
+    race: mapRace(req.query.race),
+    nationality: mapNationality(req.query.nationality),
     dateOfBirth: req.query.dob,
     email: req.query.email,
-    tfContactNumber: req.query.mobileno,
-    tfFullAddress: req.query.regadd,
-    tfEmployerName: req.query.cpfemployers,
+    contactNumber: mapContactNumber(req.query.mobileno),
+    registeredAddress: req.query.regadd,
+    residentialStatus: req.query.residentialstatus,
+    cpfEmployer: req.query.cpfemployers,
     recordId: traineeRecordId,
   };
 
-  const headers = {
-    "X-Tadabase-App-id": "PzQ4D2eQJG",
-    "X-Tadabase-App-Key": "SIJYmFMJYHgS",
-    "X-Tadabase-App-Secret": "4bUXeHiqJxsaswM0saxy7ARp6jRTdvKm",
-    "X-Tadabase-Queue-Equation": "1",
-  };
-
+  const headers = getTadabaseHeaders();
   const traineeTableId = "VX9QoerwYv";
   const apiURL = `https://api.tadabase.io/api/v1/data-tables/${traineeTableId}/records/${trainee.recordId}`;
   const data = createTadabaseInsertPayload("/trainee.json", trainee);

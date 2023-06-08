@@ -60,5 +60,9 @@
   "pipeResponseMessage": "field_5465",
   "disguisePipeResponse": "field_5587",
   "contactNumberRecordId": "field_5793",
-  "eqUenEmployer": "field_5861"
+  "eqUenEmployer": "field_5861",
+  "remarks": "field_6290",
+  "cpfEmployer": "field_6309",
+  "residentialStatus": "field_6310",
+  "registeredAddress": "field_6311"
 }
