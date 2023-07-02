@@ -153,7 +153,7 @@ function mapContactNumber(mobileno) {
   axios
     .post(apiURL, data, { headers })
     .then((response) => {
-      console.log("Response:", response.data);
+      console.log("Create Contact Number Response:", response.data);
       return response.data.recordId;
     })
     .catch((error) => {
@@ -192,14 +192,16 @@ app.get("/updateTadabaseTrainee", (req, res) => {
 
   const headers = getTadabaseHeaders();
   const traineeTableId = "VX9QoerwYv";
-  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${traineeTableId}/records/${trainee.recordId}`;
+
+  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${traineeTableId}/records/${traineeRecordId}`;
   const data = createTadabaseInsertPayload("/trainee.json", trainee);
 
   axios
     .post(apiURL, data, { headers })
     .then((response) => {
-      console.log("Response:", response.data);
-      res.redirect(redirectURL);
+      console.log("Create/Update Trainee Response:", response.data);
+      const recordId = response?.data?.recordId;
+      res.redirect(redirectURL + "&trainee_recordID=" + recordId);
     })
     .catch((error) => {
       console.error("Error:", error);

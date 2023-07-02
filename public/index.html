@@ -179,7 +179,7 @@
           encodeURIComponent(traineeRecordId) +
           "&redirectURL=" +
           encodeURIComponent(redirectURL);
-          
+
         window.location.href = url;
       }
 
@@ -205,7 +205,9 @@
       function fillFormWithQueryParams() {
         var queryParams = getQueryParams();
 
-        if (queryParams["traineeRecordId"] && queryParams["redirectURL"]) {
+        if (
+          queryParams["redirectURL"]
+        ) {
           localStorage.setItem(
             "traineeRecordId",
             queryParams["traineeRecordId"]
