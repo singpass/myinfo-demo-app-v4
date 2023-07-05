@@ -148,6 +148,7 @@
         var cpfemployers = document.getElementById("cpfemployers").value;
 
         var traineeRecordId = localStorage.getItem("traineeRecordId");
+        var employerRecordId = localStorage.getItem("employerRecordId");
         var redirectURL = localStorage.getItem("redirectURL");
 
         // Create the URL with query parameters
@@ -177,6 +178,8 @@
           encodeURIComponent(cpfemployers) +
           "&traineeRecordId=" +
           encodeURIComponent(traineeRecordId) +
+          "&employerRecordId=" +
+          encodeURIComponent(employerRecordId) +
           "&redirectURL=" +
           encodeURIComponent(redirectURL);
 
@@ -205,12 +208,14 @@
       function fillFormWithQueryParams() {
         var queryParams = getQueryParams();
 
-        if (
-          queryParams["redirectURL"]
-        ) {
+        if (queryParams["redirectURL"]) {
           localStorage.setItem(
             "traineeRecordId",
             queryParams["traineeRecordId"]
+          );
+          localStorage.setItem(
+            "employerRecordId",
+            queryParams["employerRecordId"]
           );
           localStorage.setItem("redirectURL", queryParams["redirectURL"]);
         } else {

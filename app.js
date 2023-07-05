@@ -173,6 +173,7 @@ function getTadabaseHeaders() {
 
 app.get("/updateTadabaseTrainee", (req, res) => {
   const traineeRecordId = req.query.traineeRecordId;
+  const employerRecordId = req.query.employerRecordId;
   const redirectURL = req.query.redirectURL;
 
   const trainee = {
@@ -189,6 +190,10 @@ app.get("/updateTadabaseTrainee", (req, res) => {
     cpfEmployer: req.query.cpfemployers,
     recordId: traineeRecordId,
   };
+
+  if (employerRecordId) {
+    trainee.employer = employerRecordId;
+  }
 
   const headers = getTadabaseHeaders();
   const traineeTableId = "VX9QoerwYv";
