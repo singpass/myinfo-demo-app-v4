@@ -132,34 +132,36 @@ function formatDate(date) {
 }
 
 function mapContactNumber(mobileno) {
-  const contactNumber = {
-    countryCode: mobileno?.substring(1, 3),
-    internationalPrefix: "+",
-    phoneNumber: mobileno?.substring(3),
-    contactType: "3 - Mobile Number",
-    tfContactNumber: mobileno,
-    recordStatus: "created",
-    createdOn: formatDate(new Date()),
-    createdBy: "DVWQW7GQZ4",
-  };
-  const headers = getTadabaseHeaders();
-  const contactNumberTableId = "VX9QobGNwY";
-  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${contactNumberTableId}/records`;
-  const data = createTadabaseInsertPayload(
-    "/contactNumber.json",
-    contactNumber
-  );
+  return new Promise((resolve, reject) => {
+    const contactNumber = {
+      countryCode: mobileno?.substring(1, 3),
+      internationalPrefix: "+",
+      phoneNumber: mobileno?.substring(3),
+      contactType: "3 - Mobile Number",
+      tfContactNumber: mobileno,
+      recordStatus: "created",
+      createdOn: formatDate(new Date()),
+      createdBy: "DVWQW7GQZ4",
+    };
+    const headers = getTadabaseHeaders();
+    const contactNumberTableId = "VX9QobGNwY";
+    const apiURL = `https://api.tadabase.io/api/v1/data-tables/${contactNumberTableId}/records`;
+    const data = createTadabaseInsertPayload(
+      "/contactNumber.json",
+      contactNumber
+    );
 
-  axios
-    .post(apiURL, data, { headers })
-    .then((response) => {
-      console.log("Create Contact Number Response:", response.data);
-      return response.data.recordId;
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-      return "";
-    });
+    axios
+      .post(apiURL, data, { headers })
+      .then((response) => {
+        console.log("Create Contact Number Response:", response.data);
+        resolve(response.data.recordId);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        reject(error);
+      });
+  });
 }
 
 function getTadabaseHeaders() {
@@ -171,7 +173,7 @@ function getTadabaseHeaders() {
   };
 }
 
-app.get("/updateTadabaseTrainee", (req, res) => {
+app.get("/updateTadabaseTrainee", async (req, res) => {
   const traineeRecordId = req.query.traineeRecordId;
   const employerRecordId = req.query.employerRecordId;
   const redirectURL = req.query.redirectURL;
@@ -184,13 +186,14 @@ app.get("/updateTadabaseTrainee", (req, res) => {
     nationality: mapNationality(req.query.nationality),
     dateOfBirth: req.query.dob,
     email: req.query.email,
-    contactNumber: mapContactNumber(req.query.mobileno),
+    contactNumber: [await mapContactNumber(req.query.mobileno)],
     registeredAddress: req.query.regadd,
     residentialStatus: req.query.residentialstatus,
     cpfEmployer: req.query.cpfemployers,
     recordId: traineeRecordId,
   };
 
+  console.log("trainee", trainee);
   if (employerRecordId) {
     trainee.employer = employerRecordId;
   }
@@ -206,7 +209,11 @@ app.get("/updateTadabaseTrainee", (req, res) => {
     .then((response) => {
       console.log("Create/Update Trainee Response:", response.data);
       const recordId = response?.data?.recordId;
-      res.redirect(redirectURL + "&trainee_recordID=" + recordId);
+
+      const separator = redirectURL.includes("?") ? "&" : "?";
+      const newRedirectURL =
+        redirectURL + separator + "trainee_recordID=" + recordId;
+      res.redirect(newRedirectURL);
     })
     .catch((error) => {
       console.error("Error:", error);
