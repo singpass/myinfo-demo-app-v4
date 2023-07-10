@@ -173,6 +173,30 @@ function getTadabaseHeaders() {
   };
 }
 
+function mapIdType1(residentialStatus) {
+  const statusMap = {
+    Alien: "FP - Foreign Passport",
+    Citizen: "SP - Singapore Pink Identification Card",
+    PR: "SB - Singapore Blue Identification Card",
+    Unknown: "OT - Others",
+    "NOT APPLICABLE": "OT - Others",
+  };
+
+  return statusMap[residentialStatus] || "OT - Others";
+}
+
+function mapIdType2(residentialStatus) {
+  const mapping = {
+    Alien: "Others",
+    Citizen: "NRIC",
+    PR: "NRIC",
+    Unknown: "Others",
+    "NOT APPLICABLE": "Others",
+  };
+
+  return mapping[residentialStatus] || "Others";
+}
+
 app.get("/updateTadabaseTrainee", async (req, res) => {
   const traineeRecordId = req.query.traineeRecordId;
   const employerRecordId = req.query.employerRecordId;
@@ -191,13 +215,21 @@ app.get("/updateTadabaseTrainee", async (req, res) => {
     residentialStatus: req.query.residentialstatus,
     cpfEmployer: req.query.cpfemployers,
     recordId: traineeRecordId,
+    idType1: mapIdType1(req.query.residentialstatus),
+    idType2: mapIdType2(req.query.residentialstatus),
+    createdBy: "mloNLXRNM8",
+    tmpUnitAdress: req.query.unit,
+    tmpFloorAddress: req.query.floor,
+    tmpBlockAddress: req.query.block,
+    tmpStreetAddress: req.query.street,
+    tmpPostalCodeAddress: req.query.postal,
+    tmpBuildingAddress: req.query.building,
   };
 
-  console.log("trainee", trainee);
   if (employerRecordId) {
     trainee.employer = employerRecordId;
   }
-
+  console.log("trainee", trainee);
   const headers = getTadabaseHeaders();
   const traineeTableId = "VX9QoerwYv";
 
@@ -400,6 +432,31 @@ function dataExtractor(data) {
       " \n" +
       "Singapore " +
       String(data.regadd.postal.value);
+
+    // Extract additional fields from regadd
+    if (data.regadd.building) {
+      formValues.building = String(data.regadd.building.value);
+    }
+
+    if (data.regadd.floor) {
+      formValues.floor = String(data.regadd.floor.value);
+    }
+
+    if (data.regadd.unit) {
+      formValues.unit = String(data.regadd.unit.value);
+    }
+
+    if (data.regadd.block) {
+      formValues.block = String(data.regadd.block.value);
+    }
+
+    if (data.regadd.street) {
+      formValues.street = String(data.regadd.street.value);
+    }
+
+    if (data.regadd.postal) {
+      formValues.postal = String(data.regadd.postal.value);
+    }
   } else if (
     data.regadd &&
     data.regadd.type === "Unformatted" &&

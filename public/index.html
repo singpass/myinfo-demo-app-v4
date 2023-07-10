@@ -113,6 +113,13 @@
       <label for="regadd">Residential Address:</label>
       <textarea id="regadd" name="regadd"></textarea>
 
+      <input type="hidden" id="block" name="block" />
+      <input type="hidden" id="building" name="building" />
+      <input type="hidden" id="floor" name="floor" />
+      <input type="hidden" id="unit" name="unit" />
+      <input type="hidden" id="street" name="street" />
+      <input type="hidden" id="postal" name="postal" />
+
       <label for="residentialstatus">Residential Status:</label>
       <input type="text" id="residentialstatus" name="residentialstatus" />
 
@@ -143,6 +150,14 @@
         var email = document.getElementById("email").value;
         var mobileno = document.getElementById("mobileno").value;
         var regadd = document.getElementById("regadd").value;
+
+        var block = document.getElementById("block").value;
+        var building = document.getElementById("building").value;
+        var floor = document.getElementById("floor").value;
+        var unit = document.getElementById("unit").value;
+        var street = document.getElementById("street").value;
+        var postal = document.getElementById("postal").value;
+
         var residentialstatus =
           document.getElementById("residentialstatus").value;
         var cpfemployers = document.getElementById("cpfemployers").value;
@@ -172,6 +187,18 @@
           encodeURIComponent(mobileno) +
           "&regadd=" +
           encodeURIComponent(regadd) +
+          "&block=" +
+          encodeURIComponent(block) +
+          "&building=" +
+          encodeURIComponent(building) +
+          "&floor=" +
+          encodeURIComponent(floor) +
+          "&unit=" +
+          encodeURIComponent(unit) +
+          "&street=" +
+          encodeURIComponent(street) +
+          "&postal=" +
+          encodeURIComponent(postal) +
           "&residentialstatus=" +
           encodeURIComponent(residentialstatus) +
           "&cpfemployers=" +
