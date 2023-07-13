@@ -1,15 +1,21 @@
-const express = require("express");
-let path = require("path");
-let bodyParser = require("body-parser");
-let cookieParser = require("cookie-parser");
-const cors = require("cors");
-const crypto = require("crypto");
-let MyInfoConnector = require("myinfo-connector-v4-nodejs");
-const fs = require("fs");
-const jose = require("node-jose");
-const { URL, URLSearchParams } = require("url");
-const axios = require("axios");
-const config = require("./config/config.js");
+import express from "express";
+import path from "path";
+import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import crypto from "crypto";
+import MyInfoConnector from "myinfo-connector-v4-nodejs";
+import fs from "fs";
+import jose from "node-jose";
+import { URL, URLSearchParams } from "url";
+import axios from "axios";
+import config from "./config/config.js";
+import chalk from "chalk";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const port = 3001;
@@ -103,7 +109,7 @@ app.get("/updateTadabaseTrainee", async (req, res) => {
   ) {
     trainee.employer = employerRecordId;
   }
-  console.log("trainee", trainee);
+  console.log(chalk.blue("Mapped Trainee:"), trainee);
   const headers = getTadabaseHeaders();
   const traineeTableId = "VX9QoerwYv";
 
@@ -113,14 +119,26 @@ app.get("/updateTadabaseTrainee", async (req, res) => {
   axios
     .post(apiURL, data, { headers })
     .then((response) => {
-      console.log("Create/Update Trainee Response:", response.data);
+      console.log(
+        chalk.blue("Create/Update Trainee TB Response:"),
+        response.data
+      );
       const recordId = response?.data?.recordId;
 
-      const newRedirectURL = appendQueryParam(
-        removeQueryParams(redirectURL, "trainee_recordID"),
-        "trainee_recordID",
-        recordId
-      );
+      let newRedirectURL =
+        "https://ascendo.bestraining.app/us-create-trainee-by-ca";
+      if (
+        redirectURL &&
+        redirectURL !== "null" &&
+        redirectURL !== "" &&
+        redirectURL !== null
+      ) {
+        newRedirectURL = appendQueryParam(
+          removeQueryParams(redirectURL, "trainee_recordID"),
+          "trainee_recordID",
+          recordId
+        );
+      }
 
       res.redirect(newRedirectURL);
     })
@@ -211,7 +229,7 @@ app.get("/callback", async function (req, res) {
 });
 
 app.listen(port, () =>
-  console.log(`Myinfo server is listening on port ${port}!`)
+  console.log(chalk.magenta(`Myinfo server is listening on port ${port}!`))
 );
 
 function createTadabaseInsertPayload(path, data) {

@@ -2,9 +2,9 @@
   "name": "myinfo-app",
   "version": "1.0.0",
   "description": "This is MyInfo App",
-  "main": "app.js",
+  "main": "app.mjs",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.mjs"
   },
   "author": "Yahya Khamayseh",
   "license": "",
@@ -12,6 +12,7 @@
     "ajv": "^8.6.3",
     "axios": "^1.4.0",
     "body-parser": "^1.19.0",
+    "chalk": "^5.3.0",
     "colors": "^1.4.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",

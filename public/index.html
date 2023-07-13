@@ -5,8 +5,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <style>
-      /* CSS styling goes here */
-
       body {
         font-family: Arial, sans-serif;
         background-color: #f2f2f2;
@@ -166,7 +164,6 @@
         var employerRecordId = localStorage.getItem("employerRecordId");
         var redirectURL = localStorage.getItem("redirectURL");
 
-        // Create the URL with query parameters
         var url =
           "/updateTadabaseTrainee?" +
           "uinfin=" +
@@ -209,7 +206,8 @@
           encodeURIComponent(employerRecordId) +
           "&redirectURL=" +
           encodeURIComponent(redirectURL);
-
+        
+        localStorage.clear();
         window.location.href = url;
       }
 
@@ -217,7 +215,6 @@
         window.location.href = "/login";
       }
 
-      // Function to extract query parameters from the URL
       function getQueryParams() {
         var queryParams = {};
         var query = window.location.search.substring(1);
@@ -231,7 +228,6 @@
         return queryParams;
       }
 
-      // Fill the form fields with query parameters
       function fillFormWithQueryParams() {
         var queryParams = getQueryParams();
 
@@ -264,7 +260,6 @@
         }
       }
 
-      // Call the fillFormWithQueryParams function when the page loads
       window.onload = fillFormWithQueryParams;
     </script>
   </body>

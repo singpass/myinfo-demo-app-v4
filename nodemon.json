@@ -1,5 +1,5 @@
 {
   "watch": ["."],
   "ext": "js",
-  "exec": "node app.js"
+  "exec": "node app.mjs"
 }
