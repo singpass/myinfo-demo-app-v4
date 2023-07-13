@@ -7,27 +7,19 @@ const crypto = require("crypto");
 let MyInfoConnector = require("myinfo-connector-v4-nodejs");
 const fs = require("fs");
 const jose = require("node-jose");
+const { URL, URLSearchParams } = require("url");
+const axios = require("axios");
+const config = require("./config/config.js");
 
 const app = express();
 const port = 3001;
-const config = require("./config/config.js");
 const connector = new MyInfoConnector(config.MYINFO_CONNECTOR_CONFIG);
-
-const axios = require("axios");
+const keysPath = __dirname + "/keys.json";
 
 let sessionIdCache = {};
 
 app.use(express.json());
 app.use(cors());
-
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, "public")));
-
-// Set up a route to serve the HTML file
-app.get("/createTrainee", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
@@ -35,10 +27,15 @@ app.use(
   })
 );
 app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
+
+// storePrivateKeysToPEM(keysPath);
+
+app.get("/createTrainee", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 app.get("/jwks", async function (req, res) {
-  const keysPath = __dirname + "/keys.json";
-
   let ks;
   try {
     ks = fs.readFileSync(keysPath);
@@ -64,9 +61,158 @@ app.get("/jwks", async function (req, res) {
     keyStore = await jose.JWK.asKeyStore(ks.toString());
   }
 
-  // console.log(keyStore.get("7w-lDyQPgPAL1exliq00DcQ2cEsw422oRYUCwsR5NIE").toPEM(true))
   res.send(keyStore.toJSON());
 });
+
+app.get("/updateTadabaseTrainee", async (req, res) => {
+  const traineeRecordId = req.query.traineeRecordId;
+  const employerRecordId = req.query.employerRecordId;
+  const redirectURL = req.query.redirectURL;
+
+  const trainee = {
+    traineeId: req.query.uinfin,
+    name: req.query.name,
+    traineeGender: mapSex(req.query.sex),
+    race: mapRace(req.query.race),
+    nationality: mapNationality(req.query.nationality),
+    dateOfBirth: req.query.dob,
+    email: req.query.email,
+    tmpPhoneNumberContactNumber: req.query.mobileno,
+    tmpContactTypeContactNumber: "3 - Mobile Number",
+    registeredAddress: req.query.regadd,
+    residentialStatus: req.query.residentialstatus,
+    cpfEmployer: req.query.cpfemployers,
+    recordId: traineeRecordId,
+    idType1: mapIdType1(req.query.residentialstatus),
+    idType2: mapIdType2(req.query.residentialstatus),
+    createdBy: "mloNLXRNM8",
+    tmpUnitAdress: req.query.unit,
+    tmpFloorAddress: req.query.floor,
+    tmpBlockAddress: req.query.block,
+    tmpStreetAddress: req.query.street,
+    tmpPostalCodeAddress: req.query.postal,
+    tmpBuildingAddress: req.query.building,
+    recordStatus: "Created",
+  };
+
+  if (
+    employerRecordId &&
+    employerRecordId !== "undefined" &&
+    employerRecordId !== "" &&
+    employerRecordId !== undefined
+  ) {
+    trainee.employer = employerRecordId;
+  }
+  console.log("trainee", trainee);
+  const headers = getTadabaseHeaders();
+  const traineeTableId = "VX9QoerwYv";
+
+  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${traineeTableId}/records/${traineeRecordId}`;
+  const data = createTadabaseInsertPayload("/trainee.json", trainee);
+
+  axios
+    .post(apiURL, data, { headers })
+    .then((response) => {
+      console.log("Create/Update Trainee Response:", response.data);
+      const recordId = response?.data?.recordId;
+
+      const newRedirectURL = appendQueryParam(
+        removeQueryParams(redirectURL, "trainee_recordID"),
+        "trainee_recordID",
+        recordId
+      );
+
+      res.redirect(newRedirectURL);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+});
+app.get("/login", (req, res) => {
+  const clientId = config.APP_CONFIG.APP_CLIENT_ID;
+  const redirectUrl = config.APP_CONFIG.APP_CALLBACK_URL;
+  const scope = config.APP_CONFIG.APP_SCOPES;
+  const purposeId = config.APP_CONFIG.APP_PURPOSE_ID;
+  const authApiUrl = config.APP_CONFIG.MYINFO_API_AUTHORIZE;
+  const method = "S256";
+
+  let pkceCodePair = connector.generatePKCECodePair();
+  let sessionId = crypto.randomBytes(16).toString("hex");
+  sessionIdCache[sessionId] = pkceCodePair.codeVerifier;
+
+  res.cookie("sid", sessionId);
+
+  const codeChallenge = pkceCodePair.codeChallenge;
+
+  const authorizeUrl =
+    authApiUrl +
+    "?client_id=" +
+    clientId +
+    "&scope=" +
+    scope +
+    "&purpose_id=" +
+    purposeId +
+    "&code_challenge=" +
+    codeChallenge +
+    "&code_challenge_method=" +
+    method +
+    "&redirect_uri=" +
+    redirectUrl;
+
+  res.redirect(authorizeUrl);
+});
+
+app.get("/callback", async function (req, res) {
+  try {
+    const authCode = req.query.code;
+    const codeVerifier = sessionIdCache[req.cookies.sid];
+    console.log("Calling MyInfo NodeJs Library...".green);
+
+    let privateSigningKey = fs.readFileSync(
+      config.APP_CONFIG.APP_CLIENT_PRIVATE_SIGNING_KEY,
+      "utf8"
+    );
+
+    let privateEncryptionKeys = [];
+    readFiles(
+      config.APP_CONFIG.APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
+      (filename, content) => {
+        privateEncryptionKeys.push(content);
+      },
+      (err) => {
+        throw err;
+      }
+    );
+
+    let personData = await connector.getMyInfoPersonData(
+      authCode,
+      codeVerifier,
+      privateSigningKey,
+      privateEncryptionKeys
+    );
+
+    console.log(
+      "--- Sending Person Data From Your-Server (Backend) to Your-Client (Frontend)---:"
+        .green
+    );
+
+    const formValues = dataExtractor(personData);
+    let queryString = objectToQueryString(formValues);
+    let finalRedirectURL = process.env.CREATE_TRAINEE_URL + "?" + queryString;
+
+    res.redirect(finalRedirectURL);
+  } catch (error) {
+    console.log("---MyInfo NodeJs Library Error---".red);
+    console.log(error);
+    res.status(500).send({
+      error: error,
+    });
+  }
+});
+
+app.listen(port, () =>
+  console.log(`Myinfo server is listening on port ${port}!`)
+);
 
 function createTadabaseInsertPayload(path, data) {
   const fields = JSON.parse(fs.readFileSync(__dirname + path));
@@ -175,187 +321,48 @@ function getTadabaseHeaders() {
 
 function mapIdType1(residentialStatus) {
   const statusMap = {
-    Alien: "FP - Foreign Passport",
-    Citizen: "SP - Singapore Pink Identification Card",
-    PR: "SB - Singapore Blue Identification Card",
-    Unknown: "OT - Others",
-    "NOT APPLICABLE": "OT - Others",
+    alien: "FP - Foreign Passport",
+    citizen: "SP - Singapore Pink Identification Card",
+    pr: "SB - Singapore Blue Identification Card",
+    unknown: "OT - Others",
+    "not applicable": "OT - Others",
   };
 
-  return statusMap[residentialStatus] || "OT - Others";
+  return statusMap[residentialStatus.toLowerCase()] || "OT - Others";
 }
 
 function mapIdType2(residentialStatus) {
   const mapping = {
-    Alien: "Others",
-    Citizen: "NRIC",
-    PR: "NRIC",
-    Unknown: "Others",
-    "NOT APPLICABLE": "Others",
+    alien: "Others",
+    citizen: "NRIC",
+    pr: "NRIC",
+    unknown: "Others",
+    "not applicable": "Others",
   };
 
-  return mapping[residentialStatus] || "Others";
+  return mapping[residentialStatus.toLowerCase()] || "Others";
 }
 
-app.get("/updateTadabaseTrainee", async (req, res) => {
-  const traineeRecordId = req.query.traineeRecordId;
-  const employerRecordId = req.query.employerRecordId;
-  const redirectURL = req.query.redirectURL;
+function removeQueryParams(urlString, paramName) {
+  const url = new URL(urlString);
+  const params = new URLSearchParams(url.search);
 
-  const trainee = {
-    traineeId: req.query.uinfin,
-    name: req.query.name,
-    traineeGender: mapSex(req.query.sex),
-    race: mapRace(req.query.race),
-    nationality: mapNationality(req.query.nationality),
-    dateOfBirth: req.query.dob,
-    email: req.query.email,
-    contactNumber: [await mapContactNumber(req.query.mobileno)],
-    registeredAddress: req.query.regadd,
-    residentialStatus: req.query.residentialstatus,
-    cpfEmployer: req.query.cpfemployers,
-    recordId: traineeRecordId,
-    idType1: mapIdType1(req.query.residentialstatus),
-    idType2: mapIdType2(req.query.residentialstatus),
-    createdBy: "mloNLXRNM8",
-    tmpUnitAdress: req.query.unit,
-    tmpFloorAddress: req.query.floor,
-    tmpBlockAddress: req.query.block,
-    tmpStreetAddress: req.query.street,
-    tmpPostalCodeAddress: req.query.postal,
-    tmpBuildingAddress: req.query.building,
-  };
+  params.delete(paramName);
+  url.search = params.toString();
 
-  if (employerRecordId) {
-    trainee.employer = employerRecordId;
-  }
-  console.log("trainee", trainee);
-  const headers = getTadabaseHeaders();
-  const traineeTableId = "VX9QoerwYv";
+  return url.toString();
+}
 
-  const apiURL = `https://api.tadabase.io/api/v1/data-tables/${traineeTableId}/records/${traineeRecordId}`;
-  const data = createTadabaseInsertPayload("/trainee.json", trainee);
+function appendQueryParam(urlString, paramName, paramValue) {
+  const url = new URL(urlString);
+  const params = new URLSearchParams(url.search);
 
-  axios
-    .post(apiURL, data, { headers })
-    .then((response) => {
-      console.log("Create/Update Trainee Response:", response.data);
-      const recordId = response?.data?.recordId;
+  params.append(paramName, paramValue);
+  url.search = params.toString();
 
-      const separator = redirectURL.includes("?") ? "&" : "?";
-      const newRedirectURL =
-        redirectURL + separator + "trainee_recordID=" + recordId;
-      res.redirect(newRedirectURL);
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
-});
-app.get("/login", (req, res) => {
-  const clientId = config.APP_CONFIG.APP_CLIENT_ID;
-  const redirectUrl = config.APP_CONFIG.APP_CALLBACK_URL;
-  const scope = config.APP_CONFIG.APP_SCOPES;
-  const purposeId = config.APP_CONFIG.APP_PURPOSE_ID;
-  const authApiUrl = config.APP_CONFIG.MYINFO_API_AUTHORIZE;
-  // const subentity = config.APP_CONFIG.APP_SUBENTITY_ID;
+  return url.toString();
+}
 
-  const method = "S256";
-  // const clientAssertionType =
-  //   "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-
-  // let securityEnable;
-
-  // call connector to generate code_challenge and code_verifier
-  let pkceCodePair = connector.generatePKCECodePair();
-  // create a session and store code_challenge and code_verifier pair
-  let sessionId = crypto.randomBytes(16).toString("hex");
-  sessionIdCache[sessionId] = pkceCodePair.codeVerifier;
-  // codeVerifier = pkceCodePair.codeVerifier;
-
-  //establish a frontend session with browser to retrieve back code_verifier
-  res.cookie("sid", sessionId);
-  //send code code_challenge to frontend to make /authorize call
-  const codeChallenge = pkceCodePair.codeChallenge;
-
-  const authorizeUrl =
-    authApiUrl +
-    "?client_id=" +
-    clientId +
-    "&scope=" +
-    scope +
-    "&purpose_id=" +
-    purposeId +
-    "&code_challenge=" +
-    codeChallenge +
-    "&code_challenge_method=" +
-    method +
-    "&redirect_uri=" +
-    redirectUrl;
-
-  res.redirect(authorizeUrl);
-});
-
-// callback function - directs back to home page
-app.get("/callback", async function (req, res) {
-  try {
-    const authCode = req.query.code;
-    //retrieve code verifier from session cache
-    const codeVerifier = sessionIdCache[req.cookies.sid];
-    console.log("Calling MyInfo NodeJs Library...".green);
-
-    // retrieve private siging key and decode to utf8 from FS
-    let privateSigningKey = fs.readFileSync(
-      config.APP_CONFIG.APP_CLIENT_PRIVATE_SIGNING_KEY,
-      "utf8"
-    );
-
-    let privateEncryptionKeys = [];
-    // retrieve private encryption keys and decode to utf8 from FS, insert all keys to array
-    readFiles(
-      config.APP_CONFIG.APP_CLIENT_PRIVATE_ENCRYPTION_KEYS,
-      (filename, content) => {
-        privateEncryptionKeys.push(content);
-      },
-      (err) => {
-        throw err;
-      }
-    );
-
-    // call myinfo connector to retrieve data
-    let personData = await connector.getMyInfoPersonData(
-      authCode,
-      codeVerifier,
-      privateSigningKey,
-      privateEncryptionKeys
-    );
-
-    /* 
-      P/s: Your logic to handle the person data ...
-    */
-    console.log(
-      "--- Sending Person Data From Your-Server (Backend) to Your-Client (Frontend)---:"
-        .green
-    );
-
-    const formValues = dataExtractor(personData);
-    // Convert JSON object to query string
-    let queryString = objectToQueryString(formValues);
-    // Construct the final URL
-    let finalRedirectURL = process.env.CREATE_TRAINEE_URL + "?" + queryString;
-
-    console.log(finalRedirectURL); // for testing only
-
-    res.redirect(finalRedirectURL);
-  } catch (error) {
-    console.log("---MyInfo NodeJs Library Error---".red);
-    console.log(error);
-    res.status(500).send({
-      error: error,
-    });
-  }
-});
-
-//function to read multiple files from a directory
 function readFiles(dirname, onFileContent, onError) {
   fs.readdir(dirname, function (err, filenames) {
     if (err) {
@@ -486,7 +493,6 @@ function dataExtractor(data) {
   return formValues;
 }
 
-// Function to convert JSON object to a query string
 function objectToQueryString(obj) {
   let queryString = "";
   for (let key in obj) {
@@ -500,6 +506,36 @@ function objectToQueryString(obj) {
   return queryString;
 }
 
-app.listen(port, () =>
-  console.log(`Myinfo server is listening on port ${port}!`)
-);
+async function storePrivateKeysToPEM(jsonFilePath) {
+  try {
+    const jsonData = fs.readFileSync(jsonFilePath, "utf8");
+    const { keys } = JSON.parse(jsonData);
+
+    for (const key of keys) {
+      const keystore = await jose.JWK.createKeyStore();
+      await keystore.add(key);
+
+      const selectedKey = keystore.get(key.kid);
+      const pem = selectedKey.toPEM(true);
+
+      let filePath;
+      if (key.use === "sig") {
+        filePath = path.join("cert", "signing-private-key.pem");
+      } else if (key.use === "enc") {
+        filePath = path.join(
+          "cert",
+          "encryption-private-keys",
+          "encryption-private-key.pem"
+        );
+      }
+
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, pem);
+      console.log(
+        `Private key with kid "${selectedKey.kid}" is stored in ${filePath}`
+      );
+    }
+  } catch (error) {
+    console.error("Error storing private keys to PEM:", error);
+  }
+}
