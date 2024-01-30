@@ -165,7 +165,7 @@
         var redirectURL = localStorage.getItem("redirectURL");
 
         var url =
-          "/updateTadabaseTrainee?" +
+          "/myinfo/api/v1/updateTadabaseTrainee?" +
           "uinfin=" +
           encodeURIComponent(uinfin) +
           "&name=" +
@@ -243,7 +243,7 @@
           localStorage.setItem("redirectURL", queryParams["redirectURL"]);
         } else {
           Object.keys(queryParams).forEach(function (key) {
-            if (key && queryParams[key]) {
+            if (key && queryParams[key] && key != 'email' && key != 'mobileno') {
               $("#" + key)
                 .prop("readonly", true)
                 .prop("disabled", true);
