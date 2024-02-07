@@ -165,7 +165,7 @@
         var redirectURL = localStorage.getItem("redirectURL");
 
         var url =
-          "/myinfo/api/v1/updateTadabaseTrainee?" +
+          "/myinfo/updateTadabaseTrainee?" +
           "uinfin=" +
           encodeURIComponent(uinfin) +
           "&name=" +
@@ -212,7 +212,7 @@
       }
 
       function getUserInfo() {
-        window.location.href = "/login";
+        window.location.href = "/myinfo/login";
       }
 
       function getQueryParams() {

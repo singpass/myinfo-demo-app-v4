@@ -37,11 +37,11 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // storePrivateKeysToPEM(keysPath);
 
-app.get("/myinfo/api/v1/createTrainee", (req, res) => {
+app.get("/myinfo/createTrainee", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.get("/myinfo/api/v1/jwks", async function (req, res) {
+app.get("/myinfo/jwks", async function (req, res) {
   let ks;
   try {
     ks = fs.readFileSync(keysPath);
@@ -70,7 +70,7 @@ app.get("/myinfo/api/v1/jwks", async function (req, res) {
   res.send(keyStore.toJSON());
 });
 
-app.get("/myinfo/api/v1/updateTadabaseTrainee", async (req, res) => {
+app.get("/myinfo/updateTadabaseTrainee", async (req, res) => {
   const traineeRecordId = req.query.traineeRecordId;
   const employerRecordId = req.query.employerRecordId;
   const redirectURL = req.query.redirectURL;
@@ -146,7 +146,7 @@ app.get("/myinfo/api/v1/updateTadabaseTrainee", async (req, res) => {
       console.error("Error:", error);
     });
 });
-app.get("/myinfo/api/v1/login", (req, res) => {
+app.get("/myinfo/login", (req, res) => {
   const clientId = config.APP_CONFIG.APP_CLIENT_ID;
   const redirectUrl = config.APP_CONFIG.APP_CALLBACK_URL;
   const scope = config.APP_CONFIG.APP_SCOPES;
@@ -180,7 +180,7 @@ app.get("/myinfo/api/v1/login", (req, res) => {
   res.redirect(authorizeUrl);
 });
 
-app.get("/myinfo/api/v1/callback", async function (req, res) {
+app.get("/myinfo/callback", async function (req, res) {
   try {
     const authCode = req.query.code;
     const codeVerifier = sessionIdCache[req.cookies.sid];
